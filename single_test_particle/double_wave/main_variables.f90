@@ -19,8 +19,7 @@ module variables
     DOUBLE PRECISION :: number_density(-n_z : n_z)
     DOUBLE PRECISION :: alfven_velocity(-n_z : n_z)
     DOUBLE PRECISION :: ion_Larmor_radius(-n_z : n_z)
-    DOUBLE PRECISION :: wave_phase(-n_z : n_z)
-    double precision :: wave_growth_phase(-n_z : n_z)
+    DOUBLE PRECISION :: wave_phase_1(-n_z : n_z), wave_phase_2(-n_z : n_z)
     DOUBLE PRECISION :: rnd
     CHARACTER(64)    :: file_output, file_wave, file_data
     CHARACTER(64)    :: file_energy, file_alpha, file_distribution, file_phase_space
@@ -34,11 +33,11 @@ module variables
   
     DOUBLE PRECISION :: wave_frequency(-n_z : n_z)
     DOUBLE PRECISION :: wave_number_perp(-n_z : n_z)
-    DOUBLE PRECISION :: wave_number_para(-n_z : n_z)
-    double precision :: wave_growth_number_perp(-n_z : n_z)
-    double precision :: wave_growth_number_para(-n_z : n_z)
-    DOUBLE PRECISION :: electrostatic_potential(-n_z : n_z), EE_wave_para(-n_z : n_z), EE_wave_perp_perp(-n_z : n_z)
-    DOUBLE PRECISION :: EE_wave_perp_phi(-n_z : n_z), BB_wave_para(-n_z : n_z), BB_wave_perp(-n_z : n_z)
+    DOUBLE PRECISION :: wave_number_para_1(-n_z : n_z), wave_number_para_2(-n_z : n_z)
+    DOUBLE PRECISION :: electrostatic_potential_1(-n_z : n_z), EE_wave_para_1(-n_z : n_z), EE_wave_perp_perp_1(-n_z : n_z)
+    DOUBLE PRECISION :: EE_wave_perp_phi_1(-n_z : n_z), BB_wave_para_1(-n_z : n_z), BB_wave_perp_1(-n_z : n_z)
+    DOUBLE PRECISION :: electrostatic_potential_2(-n_z : n_z), EE_wave_para_2(-n_z : n_z), EE_wave_perp_perp_2(-n_z : n_z)
+    DOUBLE PRECISION :: EE_wave_perp_phi_2(-n_z : n_z), BB_wave_para_2(-n_z : n_z), BB_wave_perp_2(-n_z : n_z)
     DOUBLE PRECISION :: V_g(-n_z : n_z), V_g_0
     DOUBLE PRECISION :: z_front, B_front, V_g_front
     DOUBLE PRECISION :: z_edge,  B_edge,  V_g_edge
@@ -56,21 +55,21 @@ module variables
     DOUBLE PRECISION :: v_particle_para, v_particle_perp
     DOUBLE PRECISION :: v_0, v_1
     DOUBLE PRECISION, allocatable :: z_particle(:), u_particle(:,:), u_particle_eq(:,:), v_eq(:,:)
-    DOUBLE PRECISION :: z_particle_sim, u_particle_sim(0:2), wave_phase_sim, wave_phase_update, wave_phase_update2
-    double precision :: wave_growth_phase_sim
+    DOUBLE PRECISION :: z_particle_sim, u_particle_sim(0:2)
+    double precision, dimension(2) :: wave_phase_update, wave_phase_update2, wave_phase_sim
     DOUBLE PRECISION,allocatable :: equator_time(:)
     INTEGER,allocatable          :: equator_flag(:), wave_flag(:), edge_flag(:)
-    INTEGER :: equator_flag_sim, wave_flag_sim, edge_flag_sim 
+    INTEGER :: equator_flag_sim, wave_flag_sim, edge_flag_sim
   
     !------------------------------
     ! decide z
-    !------------------------------  !now
-    INTEGER          :: n_z_mirror 
+    !------------------------------
+    INTEGER          :: n_z_mirror
     DOUBLE PRECISION :: B_mirror, z_mirror, norm, cumulative(0:n_z)
   
     
     !-------------------------------------
-    ! categorization 
+    ! categorization
     !-------------------------------------
   
     DOUBLE PRECISION, allocatable :: sign_theta0(:), sign_theta1(:)
@@ -82,4 +81,5 @@ module variables
     INTEGER :: Cw_flag_sim, S_flag_sim, cross_theta_0_sim
     DOUBLE PRECISION :: sign_theta0_sim, sign_theta1_sim
     
-  end module variables  
+  end module variables
+  

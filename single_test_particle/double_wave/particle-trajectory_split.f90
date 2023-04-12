@@ -29,7 +29,7 @@ program main
     
         write(thread_i_character, '(I2.2)') thread_i
         file_input(thread_i + 1) = &
-            & '/mnt/j/KAW_simulation_data/single_test_particle/single_wave/results_particle/myrank000/particle_trajectory' // &
+            & '/mnt/j/KAW_simulation_data/single_test_particle/double_wave/results_particle/myrank000/particle_trajectory' // &
             & thread_i_character // '.dat'
 
         thread_file_number(thread_i + 1) = 100 + thread_i
@@ -45,7 +45,7 @@ program main
             write(particle_i_character, '(I3.3)') particle_i + particle_in_thread * thread_i
             
             file_output(thread_i +1, particle_i) &
-                & = '/mnt/j/KAW_simulation_data/single_test_particle/single_wave/results_particle/myrank000/particle_trajectory' //&
+                & = '/mnt/j/KAW_simulation_data/single_test_particle/double_wave/results_particle/myrank000/particle_trajectory' //&
                 & thread_i_character // '-' // particle_i_character // '.dat'
 
             output_file_number(thread_i +1, particle_i) = 200 + particle_i + particle_in_thread * thread_i

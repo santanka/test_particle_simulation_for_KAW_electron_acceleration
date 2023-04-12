@@ -32,20 +32,6 @@ end subroutine
 !
 !!----------------------------------------------------------------------------------------------------------------------------------
 !
-subroutine radius_MLAT_to_z_position(MLAT, z_position)
-    use lshell_setting
-
-    implicit none
-    
-    double precision, intent(in) :: MLAT
-    double precision, intent(out) :: z_position
-
-    z_position = r_eq * (asinh(sqrt(3d0) * sin(MLAT)) /2d0/sqrt(3d0) + sin(MLAT) * sqrt(5d0 - 3d0 * cos(2d0 * MLAT)) /2d0/sqrt(2d0))
-
-end subroutine radius_MLAT_to_z_position
-!
-!!----------------------------------------------------------------------------------------------------------------------------------
-!
 subroutine z_position_to_BB(z_position, BB)
 
     implicit none
@@ -192,27 +178,31 @@ end subroutine
 !
 !!----------------------------------------------------------------------------------------------------------------------------------
 !
-subroutine z_position_to_wave_number_para(z_position, BB, wave_number_perp, wave_number_para)
+subroutine z_position_to_wave_number_para(z_position, BB, wave_number_perp, wave_number_para, channel)
     use lshell_setting
 
     implicit none
 
     DOUBLE PRECISION, INTENT(IN) :: z_position, BB, wave_number_perp
+    integer, intent(in) :: channel  !channel = 1 or 2
     DOUBLE PRECISION, INTENT(OUT) :: wave_number_para
-    DOUBLE PRECISION :: wave_frequency, alfven_velocity, ion_Larmor_radius, beta_ion
+    DOUBLE PRECISION :: wave_frequency, alfven_velocity, ion_Larmor_radius, beta_ion, channel_pm
 
     CALL z_position_to_wave_frequency(wave_frequency)
     CALL z_position_to_alfven_velocity(BB, alfven_velocity)
     CALL z_position_to_ion_Larmor_radius(BB, ion_Larmor_radius)
     CALL z_position_to_beta_ion(BB, beta_ion)
 
-    if(z_position /= 0.d0) then
-        wave_number_para = 1 / (wave_number_perp * ion_Larmor_radius) * wave_frequency / alfven_velocity &
-                        & * SQRT(beta_ion + 2d0 / (1d0 + Temperature_electron/Temperature_ion)) &
-                        & * z_position/ABS(z_position)
+    if ( channel == 1 ) then
+        channel_pm = +1d0
+    else if ( channel == 2 ) then
+        channel_pm = -1d0
     else
-        wave_number_para = 0.d0
+        print *, "ERROR!: Unexpected wave channel was entered."
     end if
+
+    wave_number_para = 1 / (wave_number_perp * ion_Larmor_radius) * wave_frequency / alfven_velocity &
+        & * sqrt(beta_ion + 2d0 / (1d0 + Temperature_electron/Temperature_ion)) * channel_pm
 
     if (isnan(wave_number_para)) then
         print *, 'z_position_to_wave_number_para: wave_number_para = NaN'
@@ -222,92 +212,16 @@ end subroutine
 !
 !!----------------------------------------------------------------------------------------------------------------------------------
 !
-subroutine z_position_to_wave_growth_number_para(z_position, wave_growth_number_para)
-    use constants_in_the_simulations
-
-    implicit none
-    
-    double precision, intent(in) :: z_position
-    double precision, intent(out) :: wave_growth_number_para
-
-    double precision :: z_position_threshold
-
-    call radius_MLAT_to_z_position(wave_parallel_threshold_point, z_position_threshold)
-
-    if (z_position_threshold > abs(z_position) .and. z_position /= 0d0) then
-        wave_growth_number_para = - 1d0 / z_position_threshold * log(wave_initial_to_threshold) * switch_wave_growth_para
-        wave_growth_number_para = wave_growth_number_para * z_position / abs(z_position)
-
-    else if (z_position_threshold > abs(z_position) .and. z_position == 0d0) then
-        wave_growth_number_para = 0d0
-
-    else if (z_position_threshold <= abs(z_position)) then
-        wave_growth_number_para = 0d0
-
-    end if
-
-end subroutine z_position_to_wave_growth_number_para
-!
-!!----------------------------------------------------------------------------------------------------------------------------------
-!
-subroutine perp_position_to_wave_growth_number_perp(perp_position, wave_growth_number_perp)
-    use constants_in_the_simulations
-
-    implicit none
-    
-    double precision, intent(in) :: perp_position
-    double precision, intent(out) :: wave_growth_number_perp
-
-    wave_growth_number_perp = switch_wave_growth_perp * 0d0
-    
-end subroutine perp_position_to_wave_growth_number_perp
-!
-!!----------------------------------------------------------------------------------------------------------------------------------
-!
-subroutine positions_to_wave_growth_phase(z_position, perp_position, wave_growth_phase)
-    use constants_in_the_simulations
-
-    implicit none
-    
-    double precision, intent(in) :: z_position, perp_position
-    double precision, intent(out) :: wave_growth_phase
-
-    double precision :: wave_growth_number_para, wave_growth_number_perp
-    double precision :: z_position_threshold
-
-    call radius_MLAT_to_z_position(wave_parallel_threshold_point, z_position_threshold)
-
-    if ( z_position_threshold > abs(z_position) .and. z_position /= 0d0 .and. switch_wave_growth_para == 1d0) then
-        wave_growth_number_para = - 1d0 / z_position_threshold * log(wave_initial_to_threshold)
-        wave_growth_number_para = wave_growth_number_para * z_position / abs(z_position)
-        wave_growth_phase = z_position * wave_growth_number_para
-
-    else if ((z_position_threshold > abs(z_position) .and. z_position == 0d0 .and. switch_wave_growth_para == 1d0) &
-        & .or. switch_wave_growth_para == 0d0) then
-        wave_growth_phase = 0d0
-
-    else if (z_position_threshold <= abs(z_position) .and. switch_wave_growth_para == 1d0) then
-        wave_growth_number_para = 0d0
-        wave_growth_phase = - log(wave_initial_to_threshold)
-
-    end if
-
-    wave_growth_number_perp = switch_wave_growth_perp * 0d0
-    wave_growth_phase = wave_growth_phase + perp_position * wave_growth_number_perp
-
-end subroutine positions_to_wave_growth_phase
-!
-!!----------------------------------------------------------------------------------------------------------------------------------
-!
-subroutine wave_number_para_to_wave_phase_initial(wave_number_para_pre, wave_number_para, wave_phase_pre, wave_phase)
+subroutine wave_number_para_to_wave_phase_initial(wave_number_para_pre, wave_number_para, wave_phase_pre, wave_phase, pm_flag)
     use constants_in_the_simulations
 
     implicit none
 
     DOUBLE PRECISION, INTENT(IN) :: wave_number_para_pre, wave_number_para, wave_phase_pre
+    double precision, intent(in) :: pm_flag !pm_flag > 0 -> 1d0, pm_flag < 0 -> -1d0
     DOUBLE PRECISION, INTENT(OUT) :: wave_phase
 
-    wave_phase = wave_phase_pre + (wave_number_para_pre + wave_number_para) / 2d0 * d_z
+    wave_phase = wave_phase_pre + sign(1d0, pm_flag) * (wave_number_para_pre + wave_number_para) / 2d0 * d_z
 
     if (isnan(wave_phase)) then
         print *, 'wave_number_para_to_wave_phase_initial: wave_phase = NaN'
@@ -317,7 +231,7 @@ end subroutine
 !
 !!----------------------------------------------------------------------------------------------------------------------------------
 !
-subroutine z_position_to_electrostatic_potential(z_position, electrostatic_potential)
+subroutine z_position_to_electrostatic_potential(z_position, electrostatic_potential, channel)
     use constant_parameter
     use lshell_setting
     use constants_in_the_simulations
@@ -325,15 +239,28 @@ subroutine z_position_to_electrostatic_potential(z_position, electrostatic_poten
     implicit none
 
     DOUBLE PRECISION, INTENT(IN) :: z_position
+    integer, intent(in) :: channel ! channel = 1 or 2
     DOUBLE PRECISION, INTENT(OUT) :: electrostatic_potential
+    DOUBLE PRECISION :: radius, MLAT, g_function, channel_pm
 
-    if (switch_wave_growth_para == 1d0) then
-        electrostatic_potential = electrostatic_potential_0 / wave_initial_to_threshold
-    
-    else if (switch_wave_growth_para == 0d0) then
-        electrostatic_potential = electrostatic_potential_0
-
+    if ( channel == 1 ) then
+        channel_pm = +1d0
+    else if ( channel == 2 ) then
+        channel_pm = -1d0
+    else
+        print *, "ERROR!: Unexpected wave channel was entered."
     end if
+
+    CALL z_position_to_radius_MLAT(z_position, radius, MLAT)
+
+    g_function = 5d-1 &
+        & * (tanh(channel_pm * gradient_parameter * (rad2deg * MLAT - channel_pm * mlat_deg_wave_threshold/2d0)) + 1d0)
+
+    if (isnan(g_function)) then
+        print *, 'z_position_to_electrostatic_potential: g_function = NaN'
+    end if
+
+    electrostatic_potential = electrostatic_potential_0 * g_function
 
     if (isnan(electrostatic_potential)) then
         print *, 'z_position_to_electrostatic_potential: electrostatic_potential = NaN'
@@ -358,6 +285,7 @@ subroutine time_to_wave_phase_update(wave_phase, wave_frequency)
     end if
 
 end subroutine
+
 !
 !!----------------------------------------------------------------------------------------------------------------------------------
 !
@@ -444,8 +372,8 @@ end subroutine
 !
 !!----------------------------------------------------------------------------------------------------------------------------------
 !
-subroutine z_particle_to_dB_dz(z_particle, u_particle, particle_Larmor_radius, B0, electrostatic_potential, wave_number_para, &
-    & wave_number_perp, wave_phase, wave_growth_phase, BB_wave_para, dB_dz)
+subroutine z_particle_to_dB_dz(z_particle, u_particle, particle_Larmor_radius, B0, wave_number_para_1, wave_number_para_2, &
+    & wave_number_perp, wave_phase_1, wave_phase_2, BB_wave_para_1, BB_wave_para_2, dB_dz)
 
     use constant_parameter
     use lshell_setting
@@ -453,61 +381,66 @@ subroutine z_particle_to_dB_dz(z_particle, u_particle, particle_Larmor_radius, B
 
     implicit none
 
-    DOUBLE PRECISION, INTENT(IN) :: z_particle, B0, electrostatic_potential, wave_number_para, wave_phase, wave_growth_phase
-    double precision, intent(in) :: BB_wave_para, particle_Larmor_radius, wave_number_perp
+    DOUBLE PRECISION, INTENT(IN) :: z_particle, B0, wave_number_para_1, wave_number_para_2, wave_phase_1, wave_phase_2
+    double precision, intent(in) :: BB_wave_para_1, BB_wave_para_2
+    double precision, intent(in) :: particle_Larmor_radius, wave_number_perp
     double precision, dimension(0:2), intent(in) :: u_particle
     DOUBLE PRECISION, INTENT(OUT) :: dB_dz
-    DOUBLE PRECISION :: radius, MLAT, dB0_dz, wave_growth_number_perp, Delta_real, Delta_imag
-    double precision :: wave_growth_number_para, Alpha, d_Alpha_dz, number_density
-    double precision :: cos_delta, sin_delta, Xi
+    DOUBLE PRECISION :: radius, MLAT, dB0_dz, Xi_1, Xi_2, dg_dz_1, dg_dz_2, deg_mlat, beta_ion, number_density, Delta_r, Delta_i, Alpha
+    double precision :: g_function_1, g_function_2
+    double precision :: channel_pm
+
 
     CALL z_position_to_radius_MLAT(z_particle, radius, MLAT)
-    call z_position_to_number_density(number_density)
+    CALL z_position_to_beta_ion(B0, beta_ion)
 
     dB0_dz = 3d0 * DSIN(MLAT) * (5d0 * DSIN(MLAT)**2d0 + 3d0) / DCOS(MLAT)**8d0 / (3d0 * DSIN(MLAT)**2d0 + 1d0) / r_eq
 
-    if(MLAT /= 0d0 .and. BB_wave_para /= 0d0 .and. switch_BB_wave_para == 1d0) then
-        Alpha = 4d0 * pi * (1d0 + Temperature_electron / Temperature_ion) * charge * number_density / B0 * electrostatic_potential
-        d_Alpha_dz = - Alpha / B0 * dB0_dz
+    if( switch_BB_wave_para == 1d0) then
+        deg_mlat = rad2deg * MLAT
 
-        call perp_position_to_wave_growth_number_perp(particle_Larmor_radius * sin(u_particle(2)), wave_growth_number_perp)
-        call z_position_to_wave_growth_number_para(z_particle, wave_growth_number_para)
-        
-        if ( particle_Larmor_radius * sin(u_particle(2)) /= 0d0 ) then
-            Delta_real = (1d0 + wave_growth_number_perp * particle_Larmor_radius * sin(u_particle(2)) &
-                & - exp(wave_growth_number_perp * particle_Larmor_radius * sin(u_particle(2))) &
-                & * cos(wave_number_perp * particle_Larmor_radius * sin(u_particle(2)))) &
-                & / (particle_Larmor_radius * sin(u_particle(2)))**2d0
+        dg_dz_1 = 90d0 / pi / r_eq / cos(MLAT) / sqrt(1d0 + 3d0 * sin(MLAT)**2d0) * gradient_parameter &
+            & / cosh(gradient_parameter * (deg_mlat - mlat_deg_wave_threshold / 2d0))**2d0
+        dg_dz_2 = - 90d0 / pi / r_eq / cos(MLAT) / sqrt(1d0 + 3d0 * sin(MLAT)**2d0) * gradient_parameter &
+            & / cosh(- gradient_parameter * (deg_mlat + mlat_deg_wave_threshold / 2d0))**2d0
 
-            Delta_imag = (- wave_number_perp * particle_Larmor_radius * sin(u_particle(2)) &
-                & + exp(wave_growth_number_perp * particle_Larmor_radius * sin(u_particle(2))) &
-                & * sin(wave_number_perp * particle_Larmor_radius * sin(u_particle(2)))) &
-                & / (particle_Larmor_radius * sin(u_particle(2)))**2d0
+        call z_position_to_number_density(number_density)
 
-        else if ( particle_Larmor_radius * sin(u_particle(2)) == 0d0 ) then
-            Delta_real = 5d-1 * (wave_number_perp**2d0 - wave_growth_number_perp**2d0)
-            Delta_imag = wave_number_perp * wave_growth_number_perp
+        Alpha = 4d0 * pi * (1d0 + Temperature_electron / Temperature_ion) * number_density * charge * electrostatic_potential_0
+
+        if ( wave_number_perp * particle_Larmor_radius * sin(u_particle(2)) /= 0d0 ) then
+            Delta_r = (1d0 - cos(wave_number_perp * particle_Larmor_radius * sin(u_particle(2)))) &
+                & / (wave_number_perp * particle_Larmor_radius * sin(u_particle(2)))**2d0
+            Delta_i = (sin(wave_number_perp * particle_Larmor_radius * sin(u_particle(2))) &
+                & - wave_number_perp * particle_Larmor_radius * sin(u_particle(2))) &
+                & / (wave_number_perp * particle_Larmor_radius * sin(u_particle(2)))**2d0
+
+        else if (wave_number_perp * particle_Larmor_radius * sin(u_particle(2)) == 0d0) then
+            Delta_r = 5d-1
+            Delta_i = 0d0
 
         end if
 
-        cos_delta = ((wave_number_perp**2d0 - wave_growth_number_perp**2d0) * cos(wave_phase) &
-            & + 2d0 * wave_number_perp * wave_growth_number_perp * sin(wave_phase)) &
-            & / (wave_number_perp**2d0 + wave_growth_number_perp**2d0)
+        CALL z_position_to_radius_MLAT(z_particle, radius, MLAT)
 
-        sin_delta = ((wave_number_perp**2d0 - wave_growth_number_perp**2d0) * sin(wave_phase) &
-            & - 2d0 * wave_number_perp * wave_growth_number_perp * cos(wave_phase)) &
-            & / (wave_number_perp**2d0 + wave_growth_number_perp**2d0)
+        g_function_1 = 5d-1 * (tanh(gradient_parameter * (rad2deg * MLAT - mlat_deg_wave_threshold / 2d0)) + 1d0)
+        g_function_2 = 5d-1 * (tanh(- gradient_parameter * (rad2deg * MLAT + mlat_deg_wave_threshold / 2d0)) + 1d0)
 
-        Xi = 2d0 / (wave_number_perp**2d0 + wave_growth_number_perp**2d0) * exp(- wave_growth_phase) &
-            & * ((d_Alpha_dz + wave_number_para * Alpha) * (Delta_real * cos_delta - Delta_imag * sin_delta) &
-            & - wave_growth_number_para * Alpha * (Delta_real * sin_delta + Delta_imag * cos_delta))
-    
+        Xi_1 = 2d0 * Alpha * ((- B0**(-2d0) * dB0_dz * g_function_1 + B0**(-1d0) * dg_dz_1) &
+            & * (Delta_r * cos(wave_phase_1) - Delta_i * sin(wave_phase_1)) - wave_number_para_1 * g_function_1 / B0 &
+            & * (Delta_r * sin(wave_phase_1) + Delta_i * cos(wave_phase_1)))
+            
+        Xi_2 = 2d0 * Alpha * ((- B0**(-2d0) * dB0_dz * g_function_2 + B0**(-1d0) * dg_dz_2) &
+            & * (Delta_r * cos(wave_phase_2) - Delta_i * sin(wave_phase_2)) - wave_number_para_2 * g_function_2 / B0 &
+            & * (Delta_r * sin(wave_phase_2) + Delta_i * cos(wave_phase_2)))
+            
     else
-        Xi = 0d0
+        Xi_1 = 0d0
+        Xi_2 = 0d0
     
     end if
 
-    dB_dz = dB0_dz + Xi
+    dB_dz = dB0_dz + Xi_1 + Xi_2
 
     if (isnan(dB_dz)) then
         print *, 'z_particle_to_dB_dz: dB_dz = NaN'
@@ -517,19 +450,18 @@ end subroutine
 !
 !!----------------------------------------------------------------------------------------------------------------------------------
 !
-subroutine electrostatic_potential_to_EE_wave_para(electrostatic_potential, wave_number_para, wave_phase, wave_growth_phase, &
-    & EE_wave_para)
+subroutine electrostatic_potential_to_EE_wave_para(electrostatic_potential, wave_number_para, wave_phase, EE_wave_para)
     
     use lshell_setting
     use constants_in_the_simulations
 
     implicit none
 
-    DOUBLE PRECISION, INTENT(IN) :: electrostatic_potential, wave_number_para, wave_phase, wave_growth_phase
+    DOUBLE PRECISION, INTENT(IN) :: electrostatic_potential, wave_number_para, wave_phase
     DOUBLE PRECISION, INTENT(OUT) :: EE_wave_para
 
     EE_wave_para = (2d0 + Temperature_electron / Temperature_ion) * wave_number_para * electrostatic_potential * SIN(wave_phase)
-    EE_wave_para = EE_wave_para * exp(- wave_growth_phase) * switch_EE_wave_para
+    EE_wave_para = EE_wave_para * switch_EE_wave_para
 
     if (isnan(EE_wave_para)) then
         print *, 'electrostatic_potential_to_EE_wave_para: EE_wave_para = NaN'
@@ -540,7 +472,7 @@ end subroutine
 !!----------------------------------------------------------------------------------------------------------------------------------
 !
 subroutine electrostatic_potential_to_EE_wave_perp_perp(electrostatic_potential, wave_frequency, wave_number_perp, wave_phase, &
-    & wave_growth_phase, z_position, u_particle_phase, EE_wave_perp_perp)
+    & z_position, u_particle_phase, EE_wave_perp_perp)
     
     use lshell_setting
     use constants_in_the_simulations
@@ -548,7 +480,7 @@ subroutine electrostatic_potential_to_EE_wave_perp_perp(electrostatic_potential,
     implicit none
 
     DOUBLE PRECISION, INTENT(IN) :: electrostatic_potential, wave_frequency, wave_number_perp, wave_phase, z_position
-    DOUBLE PRECISION, INTENT(IN) :: u_particle_phase, wave_growth_phase
+    DOUBLE PRECISION, INTENT(IN) :: u_particle_phase
     DOUBLE PRECISION, INTENT(OUT) :: EE_wave_perp_perp
     DOUBLE PRECISION :: BB, beta_ion, ion_Larmor_radius, ion_gyrofrequency
 
@@ -563,7 +495,7 @@ subroutine electrostatic_potential_to_EE_wave_perp_perp(electrostatic_potential,
                         & (1d0 + Temperature_electron / Temperature_ion) * SIN(u_particle_phase) * COS(wave_phase)) &
                         & * wave_number_perp * electrostatic_potential
 
-    EE_wave_perp_perp = EE_wave_perp_perp * exp(- wave_growth_phase) * switch_EE_wave_perp_perp
+    EE_wave_perp_perp = EE_wave_perp_perp * switch_EE_wave_perp_perp
 
     if (isnan(EE_wave_perp_perp)) then
         print *, 'electrostatic_potential_to_EE_wave_perp_perp: EE_wave_perp_perp = NaN'
@@ -574,7 +506,7 @@ end subroutine
 !!----------------------------------------------------------------------------------------------------------------------------------
 !
 subroutine electrostatic_potential_to_EE_wave_perp_phi(electrostatic_potential, wave_frequency, wave_number_perp, wave_phase, &
-    & wave_growth_phase, z_position, u_particle_phase, EE_wave_perp_phi)
+    & z_position, u_particle_phase, EE_wave_perp_phi)
     
     use lshell_setting
     use constants_in_the_simulations
@@ -582,7 +514,7 @@ subroutine electrostatic_potential_to_EE_wave_perp_phi(electrostatic_potential, 
     implicit none
 
     DOUBLE PRECISION, INTENT(IN) :: electrostatic_potential, wave_frequency, wave_number_perp, wave_phase, z_position
-    DOUBLE PRECISION, INTENT(IN) :: u_particle_phase, wave_growth_phase
+    DOUBLE PRECISION, INTENT(IN) :: u_particle_phase
     DOUBLE PRECISION, INTENT(OUT) :: EE_wave_perp_phi
     DOUBLE PRECISION :: BB, beta_ion, ion_Larmor_radius, ion_gyrofrequency
 
@@ -597,7 +529,7 @@ subroutine electrostatic_potential_to_EE_wave_perp_phi(electrostatic_potential, 
                         & (1d0 + Temperature_electron / Temperature_ion) * COS(u_particle_phase) * COS(wave_phase)) &
                         & * wave_number_perp * electrostatic_potential
 
-    EE_wave_perp_phi = EE_wave_perp_phi * exp(- wave_growth_phase) * switch_EE_wave_perp_phi
+    EE_wave_perp_phi = EE_wave_perp_phi * switch_EE_wave_perp_phi
 
     if (isnan(EE_wave_perp_phi)) then
         print *, 'electrostatic_potential_to_EE_wave_perp_phi: EE_wave_perp_phi = NaN'
@@ -607,14 +539,14 @@ end subroutine
 !
 !!----------------------------------------------------------------------------------------------------------------------------------
 !
-subroutine electrostatic_potential_to_BB_wave_para(electrostatic_potential, wave_phase, wave_growth_phase, z_position, BB_wave_para)
+subroutine electrostatic_potential_to_BB_wave_para(electrostatic_potential, wave_phase, z_position, BB_wave_para)
     
     use lshell_setting
     use constants_in_the_simulations
 
     implicit none
 
-    DOUBLE PRECISION, INTENT(IN) :: electrostatic_potential, wave_phase, wave_growth_phase, z_position
+    DOUBLE PRECISION, INTENT(IN) :: electrostatic_potential, wave_phase, z_position
     DOUBLE PRECISION, INTENT(OUT) :: BB_wave_para
     DOUBLE PRECISION :: BB, beta_ion
 
@@ -624,7 +556,7 @@ subroutine electrostatic_potential_to_BB_wave_para(electrostatic_potential, wave
     BB_wave_para = beta_ion / 2d0 * (1 + Temperature_electron / Temperature_ion) * charge / Temperature_ion * BB &
                     & * electrostatic_potential * COS(wave_phase)
 
-    BB_wave_para = BB_wave_para * exp(- wave_growth_phase) * switch_BB_wave_para
+    BB_wave_para = BB_wave_para * switch_BB_wave_para
 
     if (isnan(BB_wave_para)) then
         print *, 'electrostatic_potential_to_BB_wave_para: BB_wave_para = NaN'
@@ -634,8 +566,8 @@ end subroutine
 !
 !!----------------------------------------------------------------------------------------------------------------------------------
 !
-subroutine electrostatic_potential_to_BB_wave_perp(electrostatic_potential, wave_phase, wave_growth_phase, wave_frequency, &
-    & wave_number_para, wave_number_perp, BB_wave_perp)
+subroutine electrostatic_potential_to_BB_wave_perp(electrostatic_potential, wave_phase, wave_frequency, wave_number_para, &
+    & wave_number_perp, BB_wave_perp)
     
     use lshell_setting
     use constants_in_the_simulations
@@ -643,13 +575,12 @@ subroutine electrostatic_potential_to_BB_wave_perp(electrostatic_potential, wave
     implicit none
 
     DOUBLE PRECISION, INTENT(IN) :: electrostatic_potential, wave_phase, wave_frequency, wave_number_para, wave_number_perp
-    double precision, intent(in) :: wave_growth_phase
     DOUBLE PRECISION, INTENT(OUT) :: BB_wave_perp
     
-    BB_wave_perp = - (1 + Temperature_electron / Temperature_ion) * wave_number_para * c_normal / wave_frequency &
+    BB_wave_perp = (1d0 + Temperature_electron / Temperature_ion) * wave_number_para * c_normal / wave_frequency &
                     & * wave_number_perp * electrostatic_potential * SIN(wave_phase)
 
-    BB_wave_perp = BB_wave_perp * exp(- wave_growth_phase) * switch_BB_wave_perp
+    BB_wave_perp = BB_wave_perp * switch_BB_wave_perp
 
     if (isnan(BB_wave_perp)) then
         print *, 'electrostatic_potential_to_BB_wave_perp: BB_wave_perp = NaN'
@@ -674,24 +605,25 @@ end subroutine calculation_particle_Larmor_radius
 !
 !!----------------------------------------------------------------------------------------------------------------------------------
 !
-subroutine wave_phase_plus_perp_contribution(wave_phase, wave_number_perp, electrostatic_potential, z_position, BB, &
-                                            & u_particle, wave_phase_update, wave_growth_phase_update)
+subroutine wave_phase_plus_perp_contribution(wave_phase, wave_number_perp, electrostatic_potential_1, electrostatic_potential_2, &
+                                            & z_position, BB, u_particle, wave_phase_update)
     
     use constant_parameter
     use lshell_setting
 
     implicit none
 
-    DOUBLE PRECISION, INTENT(IN) :: wave_phase, wave_number_perp, electrostatic_potential, z_position, BB
+    double precision, dimension(2), intent(in) :: wave_phase
+    DOUBLE PRECISION, INTENT(IN) :: wave_number_perp, electrostatic_potential_1, electrostatic_potential_2, z_position, BB
     DOUBLE PRECISION, DIMENSION(0:2), INTENT(IN) :: u_particle
-    DOUBLE PRECISION, INTENT(OUT) :: wave_phase_update, wave_growth_phase_update
-    DOUBLE PRECISION :: BB_wave_para, wave_growth_phase_parallel, wave_growth_number_perp, particle_Larmor_radius, BB_wave_para_imag
-    double precision :: beta_ion
-    double complex :: phase0, ff, gg, phase1
+    DOUBLE PRECISION, dimension(2), INTENT(OUT) :: wave_phase_update
+    DOUBLE PRECISION :: phase_1_old, phase_1_new, phase_2_old, phase_2_new, BB_wave_para_1, BB_wave_para_2, BB_wave_para_sum
+    double precision :: ff_1, gg_1, ff_2, gg_2
     INTEGER :: ii
 
-    call positions_to_wave_growth_phase(z_position, 0d0, wave_growth_phase_parallel)
-    phase0 = cmplx(wave_phase, wave_growth_phase_parallel, kind=8)
+    phase_1_old = wave_phase(1)
+    phase_2_old = wave_phase(2)
+
     do ii = 1, 1000000
         if (ii == 1000000) then
             print *, "Error!: solution is not found. wave_phase = ", wave_phase
@@ -701,37 +633,38 @@ subroutine wave_phase_plus_perp_contribution(wave_phase, wave_number_perp, elect
             print *, "                               u_phase = ", MOD(u_particle(2), 2d0*pi)
         endif
 
-        CALL electrostatic_potential_to_BB_wave_para(electrostatic_potential, real(phase0), aimag(phase0), z_position, BB_wave_para)
-        call calculation_particle_Larmor_radius(u_particle, BB, BB_wave_para, particle_Larmor_radius)
-        call perp_position_to_wave_growth_number_perp(particle_Larmor_radius*sin(u_particle(2)), wave_growth_number_perp)
+        CALL electrostatic_potential_to_BB_wave_para(electrostatic_potential_1, phase_1_old, z_position, BB_wave_para_1)
+        CALL electrostatic_potential_to_BB_wave_para(electrostatic_potential_2, phase_2_old, z_position, BB_wave_para_2)
 
-        CALL z_position_to_beta_ion(BB, beta_ion)
+        ff_1 = phase_1_old - wave_phase(1) &
+            & - wave_number_perp * u_particle(1) * electron_mass * c_normal / charge / (BB + BB_wave_para_1) * SIN(u_particle(2))
+        gg_1 = 1 - wave_number_perp * u_particle(1) * electron_mass * c_normal / charge / (BB + BB_wave_para_1)**2d0 &
+            & * SIN(u_particle(2)) * BB_wave_para_1 * TAN(phase_1_old)
 
-        BB_wave_para_imag = beta_ion / 2d0 * (1 + Temperature_electron / Temperature_ion) * charge / Temperature_ion * BB &
-                        & * electrostatic_potential * sin(wave_phase)
+        phase_1_new = phase_1_old - ff_1 / gg_1
 
-        ff = phase0 - cmplx(wave_phase, wave_growth_phase_parallel, kind=8) &
-            & - cmplx(wave_number_perp, wave_growth_number_perp, kind=8) * u_particle(1) * electron_mass * c_normal / charge &
-            & / (BB + cmplx(BB_wave_para, BB_wave_para_imag, kind=8)) * SIN(u_particle(2))
-        gg = 1 + cmplx(wave_growth_number_perp, - wave_number_perp, kind=8) * u_particle(1) * electron_mass * c_normal / charge &
-            & / (BB + cmplx(BB_wave_para, BB_wave_para_imag, kind=8))**2d0 * SIN(u_particle(2)) &
-            & * cmplx(BB_wave_para, BB_wave_para_imag, kind=8)
+        
+        ff_2 = phase_2_old - wave_phase(2) &
+            & - wave_number_perp * u_particle(1) * electron_mass * c_normal / charge / (BB + BB_wave_para_2) * SIN(u_particle(2))
+        gg_2 = 1 - wave_number_perp * u_particle(1) * electron_mass * c_normal / charge / (BB + BB_wave_para_2)**2d0 &
+            & * SIN(u_particle(2)) * BB_wave_para_2 * TAN(phase_2_old)
 
-        phase1 = phase0 - ff / gg
+        phase_2_new = phase_2_old - ff_2 / gg_2
 
-        if (abs(phase1 - phase0) <= 1d-5) exit
-        phase0 = phase1
+        if (sqrt((phase_1_new - phase_1_old)**2d0 + (phase_2_new - phase_2_old)**2d0) <= 1d-5) exit
+        phase_1_old = phase_1_new
+        phase_2_old = phase_2_new
 
     end do !ii
 
-    wave_phase_update = real(phase1)
-    wave_growth_phase_update = aimag(phase1)
+    wave_phase_update(1) = phase_1_new
+    wave_phase_update(2) = phase_2_new
 
 end subroutine
 !
 !!----------------------------------------------------------------------------------------------------------------------------------
 !
-subroutine Motion_of_Equation(z_position, wave_phase, z_p, u_p, force, wave_phase_p, wave_growth_phase_p)
+subroutine Motion_of_Equation(z_position, wave_phase_1, wave_phase_2, z_p, u_p, force, wave_phase_p)
     !p -> particle
 
     use constant_parameter, only: pi
@@ -740,56 +673,91 @@ subroutine Motion_of_Equation(z_position, wave_phase, z_p, u_p, force, wave_phas
 
     implicit none
 
-    DOUBLE PRECISION, INTENT(IN) :: z_position(-n_z:n_z), wave_phase(-n_z:n_z)
+    DOUBLE PRECISION, INTENT(IN) :: z_position(-n_z:n_z), wave_phase_1(-n_z:n_z), wave_phase_2(-n_z:n_z)
     DOUBLE PRECISION, INTENT(IN) :: z_p, u_p(0:2)
-    DOUBLE PRECISION, INTENT(OUT) :: force(0:2), wave_phase_p, wave_growth_phase_p
-    DOUBLE PRECISION :: gamma, ratio, BB_p, dB_dz_p, wave_number_perp_p, wave_number_para_p, wave_frequency_p, force_wave(0:2)
-    DOUBLE PRECISION :: electrostatic_potential_p, wave_phase_p_update, EE_wave_para_p, EE_wave_perp_perp_p
-    DOUBLE PRECISION :: EE_wave_perp_phi_p, BB_wave_para_p, BB_wave_perp_p, particle_Larmor_radius_p
+    DOUBLE PRECISION, INTENT(OUT) :: force(0:2)
+    double precision, dimension(2), intent(out) :: wave_phase_p
+    double precision :: wave_phase_1_p, wave_phase_2_p
+    DOUBLE PRECISION :: gamma, ratio, BB_p, dB_dz_p, wave_number_perp_p, wave_number_para_1_p, wave_number_para_2_p
+    double precision :: wave_frequency_p, force_wave(0:2), electrostatic_potential_1_p, electrostatic_potential_2_p
+    double precision :: wave_phase_1_p_update, wave_phase_2_p_update
+    double precision :: EE_wave_para_1_p, EE_wave_perp_perp_1_p, EE_wave_perp_phi_1_p, BB_wave_para_1_p, BB_wave_perp_1_p
+    double precision :: EE_wave_para_2_p, EE_wave_perp_perp_2_p, EE_wave_perp_phi_2_p, BB_wave_para_2_p, BB_wave_perp_2_p
+    double precision :: EE_wave_para_sum_p, EE_wave_perp_perp_sum_p, EE_wave_perp_phi_sum_p, BB_wave_para_sum_p, BB_wave_perp_sum_p
+    double precision :: particle_Larmor_radius_p
     INTEGER :: i_z_left, i_z_right
 
     CALL u_particle_to_gamma(u_p, gamma)
     CALL z_particle_to_position(z_p, z_position, i_z_left, i_z_right, ratio)
     CALL z_position_to_BB(z_p, BB_p)
-    CALL z_position_to_electrostatic_potential(z_p, electrostatic_potential_p)
+
+    CALL z_position_to_electrostatic_potential(z_p, electrostatic_potential_1_p, 1)
+    CALL z_position_to_electrostatic_potential(z_p, electrostatic_potential_2_p, 2)
+    
     CALL z_position_to_wave_frequency(wave_frequency_p)
     CALL z_position_to_wave_number_perp(BB_p, wave_number_perp_p)
-    CALL z_position_to_wave_number_para(z_p, BB_p, wave_number_perp_p, wave_number_para_p)
+    
+    CALL z_position_to_wave_number_para(z_p, BB_p, wave_number_perp_p, wave_number_para_1_p, 1)
+    CALL z_position_to_wave_number_para(z_p, BB_p, wave_number_perp_p, wave_number_para_2_p, 2)
 
-    wave_phase_p = (1d0 - ratio) * wave_phase(i_z_left) + ratio * wave_phase(i_z_right)
+    wave_phase_1_p = (1d0 - ratio) * wave_phase_1(i_z_left) + ratio * wave_phase_1(i_z_right)
+    wave_phase_2_p = (1d0 - ratio) * wave_phase_2(i_z_left) + ratio * wave_phase_2(i_z_right)
 
-    CALL wave_phase_plus_perp_contribution(wave_phase_p, wave_number_perp_p, electrostatic_potential_p, z_p, BB_p, u_p, &
-                                           & wave_phase_p_update, wave_growth_phase_p)
+    CALL wave_phase_plus_perp_contribution(wave_phase_1_p, wave_number_perp_p, electrostatic_potential_1_p, z_p, BB_p, u_p, &
+                                        & wave_phase_1_p_update)
+    wave_phase_1_p = wave_phase_1_p_update
+    
+    CALL wave_phase_plus_perp_contribution(wave_phase_2_p, wave_number_perp_p, electrostatic_potential_2_p, z_p, BB_p, u_p, &
+                                        & wave_phase_2_p_update)
+    wave_phase_2_p = wave_phase_2_p_update
 
-    wave_phase_p = wave_phase_p_update
+    wave_phase_p(1) = wave_phase_1_p
+    wave_phase_p(2) = wave_phase_2_p
 
-    CALL electrostatic_potential_to_EE_wave_para(electrostatic_potential_p, wave_number_para_p, wave_phase_p, wave_growth_phase_p, &
-        & EE_wave_para_p)
-    CALL electrostatic_potential_to_EE_wave_perp_perp(electrostatic_potential_p, wave_frequency_p, wave_number_perp_p, &
-                                                        & wave_phase_p, wave_growth_phase_p, z_p, u_p(2), EE_wave_perp_perp_p)
-    CALL electrostatic_potential_to_EE_wave_perp_phi(electrostatic_potential_p, wave_frequency_p, wave_number_perp_p, &
-                                                    & wave_phase_p, wave_growth_phase_p, z_p, u_p(2), EE_wave_perp_phi_p)
-    CALL electrostatic_potential_to_BB_wave_para(electrostatic_potential_p, wave_phase_p, wave_growth_phase_p, z_p, BB_wave_para_p)
-    CALL electrostatic_potential_to_BB_wave_perp(electrostatic_potential_p, wave_phase_p, wave_growth_phase_p, wave_frequency_p, &
-        & wave_number_para_p, wave_number_perp_p, BB_wave_perp_p)
 
-    call calculation_particle_Larmor_radius(u_p, BB_p, BB_wave_para_p, particle_Larmor_radius_p)
+    CALL electrostatic_potential_to_EE_wave_para(electrostatic_potential_1_p, wave_number_para_1_p, wave_phase_1_p,EE_wave_para_1_p)
+    CALL electrostatic_potential_to_EE_wave_perp_perp(electrostatic_potential_1_p, wave_frequency_p, wave_number_perp_p, &
+                                                    & wave_phase_1_p, z_p, u_p(2), EE_wave_perp_perp_1_p)
+    CALL electrostatic_potential_to_EE_wave_perp_phi(electrostatic_potential_1_p, wave_frequency_p, wave_number_perp_p, &
+                                                    & wave_phase_1_p, z_p, u_p(2), EE_wave_perp_phi_1_p)
+    CALL electrostatic_potential_to_BB_wave_para(electrostatic_potential_1_p, wave_phase_1_p, z_p, BB_wave_para_1_p)
+    CALL electrostatic_potential_to_BB_wave_perp(electrostatic_potential_1_p, wave_phase_1_p, wave_frequency_p, &
+                                                & wave_number_para_1_p, wave_number_perp_p, BB_wave_perp_1_p)
+    
+    
+    CALL electrostatic_potential_to_EE_wave_para(electrostatic_potential_2_p, wave_number_para_2_p, wave_phase_2_p,EE_wave_para_2_p)
+    CALL electrostatic_potential_to_EE_wave_perp_perp(electrostatic_potential_2_p, wave_frequency_p, wave_number_perp_p, &
+                                                    & wave_phase_2_p, z_p, u_p(2), EE_wave_perp_perp_2_p)
+    CALL electrostatic_potential_to_EE_wave_perp_phi(electrostatic_potential_2_p, wave_frequency_p, wave_number_perp_p, &
+                                                    & wave_phase_2_p, z_p, u_p(2), EE_wave_perp_phi_2_p)
+    CALL electrostatic_potential_to_BB_wave_para(electrostatic_potential_2_p, wave_phase_2_p, z_p, BB_wave_para_2_p)
+    CALL electrostatic_potential_to_BB_wave_perp(electrostatic_potential_2_p, wave_phase_2_p, wave_frequency_p, &
+                                                & wave_number_para_2_p, wave_number_perp_p, BB_wave_perp_2_p)
 
-    CALL z_particle_to_dB_dz(z_p, u_p, particle_Larmor_radius_p, BB_p, electrostatic_potential_p, wave_number_para_p, &
-        & wave_number_perp_p, wave_phase_p, wave_growth_phase_p, BB_wave_para_p, dB_dz_p)
+    EE_wave_para_sum_p = EE_wave_para_1_p + EE_wave_para_2_p
+    EE_wave_perp_perp_sum_p = EE_wave_perp_perp_1_p + EE_wave_perp_perp_2_p
+    EE_wave_perp_phi_sum_p = EE_wave_perp_phi_1_p + EE_wave_perp_phi_2_p
+    BB_wave_para_sum_p = BB_wave_para_1_p + BB_wave_para_2_p
+    BB_wave_perp_sum_p = BB_wave_perp_1_p + BB_wave_perp_2_p
+
+    call calculation_particle_Larmor_radius(u_p, BB_p, BB_wave_para_sum_p, particle_Larmor_radius_p)
+
+    call z_particle_to_dB_dz(z_p, u_p, particle_Larmor_radius_p, BB_p, wave_number_para_1_p, wave_number_para_2_p, &
+        & wave_number_perp_p, wave_phase_1_p, wave_phase_2_p, BB_wave_para_1_p, BB_wave_para_2_p, dB_dz_p)
+    
 
     !force(EE_wave & BB_wave_perp)
-    force_wave(0) = - charge * EE_wave_para_p / electron_mass &
-                    & - charge * BB_wave_perp_p / electron_mass / gamma / c_normal * u_p(1) * cos(u_p(2))
-    force_wave(1) = - charge * EE_wave_perp_perp_p / electron_mass &
-                    & + charge * BB_wave_perp_p / electron_mass / gamma / c_normal * u_p(0) * cos(u_p(2))
-    force_wave(2) = + charge * EE_wave_perp_phi_p / electron_mass / gamma / c_normal * gamma * c_normal / u_p(1) &
-                    & - charge * BB_wave_perp_p / electron_mass / gamma / c_normal * u_p(0) / u_p(1) * SIN(u_p(2))
+    force_wave(0) = - charge * EE_wave_para_sum_p / electron_mass - u_p(1)**2d0 / 2d0 / (BB_p + BB_wave_para_sum_p) / gamma * 2d0 &
+        & / particle_Larmor_radius_p * BB_wave_perp_sum_p * cos(u_p(2))
+    force_wave(1) = - charge * EE_wave_perp_perp_sum_p / electron_mass + u_p(1)*u_p(0) / 2d0 / (BB_p + BB_wave_para_sum_p) / gamma &
+        & * 2d0 / particle_Larmor_radius_p * BB_wave_perp_sum_p *cos(u_p(2))
+    force_wave(2) = + charge * EE_wave_perp_phi_sum_p / electron_mass / gamma / c_normal * gamma * c_normal / u_p(1) &
+            & - charge * BB_wave_perp_sum_p / electron_mass / gamma / c_normal * u_p(0) / u_p(1) * SIN(u_p(2))
 
     !force
-    force(0) = - u_p(1)**2d0 / 2d0 / (BB_p + BB_wave_para_p) / gamma * dB_dz_p + force_wave(0)
-    force(1) = u_p(0) * u_p(1) / 2d0 / (BB_p + BB_wave_para_p) / gamma * dB_dz_p + force_wave(1)
-    force(2) = charge * (BB_p + BB_wave_para_p) / electron_mass / gamma / c_normal + force_wave(2)
+    force(0) = - u_p(1)**2d0 / 2d0 / (BB_p + BB_wave_para_sum_p) / gamma * dB_dz_p + force_wave(0)
+    force(1) = u_p(0) * u_p(1) / 2d0 / (BB_p + BB_wave_para_sum_p) / gamma * dB_dz_p + force_wave(1)
+    force(2) = charge * (BB_p + BB_wave_para_sum_p) / electron_mass / gamma / c_normal + force_wave(2)
 
     if (isnan(force(0))) then
         print *, 'Motion_of_Equation: force(0) = NaN'
@@ -805,38 +773,39 @@ end subroutine
 !
 !!----------------------------------------------------------------------------------------------------------------------------------
 !
-subroutine particle_update_by_runge_kutta(z_in, wave_phase_in, z_particle, u_particle, edge_flag, wave_phase_1, wave_growth_phase_1)
+subroutine particle_update_by_runge_kutta(z_in, wave_phase_in_1, wave_phase_in_2, z_particle, u_particle, edge_flag, wave_phase_1)
 
     use constants_in_the_simulations, only: d_t, n_z, L_z, d_z
 
     implicit none
 
-    DOUBLE PRECISION, INTENT(IN) :: z_in(-n_z:n_z), wave_phase_in(-n_z:n_z)
+    DOUBLE PRECISION, INTENT(IN) :: z_in(-n_z:n_z), wave_phase_in_1(-n_z:n_z), wave_phase_in_2(-n_z:n_z)
     DOUBLE PRECISION, INTENT(INOUT) :: z_particle, u_particle(0:2)
-    DOUBLE PRECISION, INTENT(OUT) :: wave_phase_1, wave_growth_phase_1
+    DOUBLE PRECISION, dimension(2), INTENT(OUT) :: wave_phase_1
     INTEGER, INTENT(OUT) :: edge_flag
     DOUBLE PRECISION :: ff_RK_1(0:2), ff_RK_2(0:2), ff_RK_3(0:2), ff_RK_4(0:2), u_particle_s(0:2)
     DOUBLE PRECISION :: kk_RK_1, kk_RK_2, kk_RK_3, kk_RK_4
-    DOUBLE PRECISION :: wave_phase_2, wave_phase_3, wave_phase_4, wave_growth_phase_2, wave_growth_phase_3, wave_growth_phase_4
+    DOUBLE PRECISION, dimension(2) :: wave_phase_2, wave_phase_3, wave_phase_4
     
 
     u_particle_s(:) = u_particle(:)
 
     !RK4
     CALL u_particle_to_v_particle_para(u_particle_s, kk_RK_1)
-    CALL Motion_of_Equation(z_in, wave_phase_in, z_particle, u_particle, ff_RK_1, wave_phase_1, wave_growth_phase_1)
+    CALL Motion_of_Equation(z_in, wave_phase_in_1, wave_phase_in_2, &
+        & z_particle, u_particle, ff_RK_1, wave_phase_1)
 
     CALL u_particle_to_v_particle_para(u_particle_s + ff_RK_1 / 2d0 * d_t, kk_RK_2)
-    CALL Motion_of_Equation(z_in, wave_phase_in, z_particle + kk_RK_1 / 2d0 * d_t, u_particle_s + ff_RK_1 / 2d0 * d_t, ff_RK_2, &
-        & wave_phase_2, wave_growth_phase_2)
+    CALL Motion_of_Equation(z_in, wave_phase_in_1, wave_phase_in_2, &
+        & z_particle + kk_RK_1 / 2d0 * d_t, u_particle_s + ff_RK_1 / 2d0 * d_t, ff_RK_2, wave_phase_2)
 
     CALL u_particle_to_v_particle_para(u_particle_s + ff_RK_2 / 2d0 * d_t, kk_RK_3)
-    CALL Motion_of_Equation(z_in, wave_phase_in, z_particle + kk_RK_2 / 2d0 * d_t, u_particle_s + ff_RK_2 / 2d0 * d_t, ff_RK_3, &
-        & wave_phase_3, wave_growth_phase_3)
+    CALL Motion_of_Equation(z_in, wave_phase_in_1, wave_phase_in_2, &
+        & z_particle + kk_RK_2 / 2d0 * d_t, u_particle_s + ff_RK_2 / 2d0 * d_t, ff_RK_3, wave_phase_3)
 
     CALL u_particle_to_v_particle_para(u_particle_s + ff_RK_3 * d_t, kk_RK_4)
-    CALL Motion_of_Equation(z_in, wave_phase_in, z_particle + kk_RK_3 * d_t, u_particle_s + ff_RK_3 * d_t, ff_RK_4, wave_phase_4, &
-        & wave_growth_phase_4)
+    CALL Motion_of_Equation(z_in, wave_phase_in_1, wave_phase_in_2, &
+        & z_particle + kk_RK_3 * d_t, u_particle_s + ff_RK_3 * d_t, ff_RK_4, wave_phase_4)
 
     !particle update
     u_particle(:) = u_particle(:) + (ff_RK_1(:) + 2d0 * ff_RK_2(:) + 2d0 * ff_RK_3(:) + ff_RK_4(:)) * d_t / 6d0
@@ -870,26 +839,31 @@ end subroutine
 !
 !!----------------------------------------------------------------------------------------------------------------------------------
 !
-subroutine z_particle_to_wave_phase(z_position, z_particle, u_p, wave_phase, wave_phase_p, wave_growth_phase_p)
+subroutine z_particle_to_wave_phase(z_position, z_particle, u_p, wave_phase_1, wave_phase_2, wave_phase_p)
     use constants_in_the_simulations, only: n_z
 
     implicit none
 
-    DOUBLE PRECISION, INTENT(IN) :: z_position(-n_z:n_z), wave_phase(-n_z:n_z)
+    DOUBLE PRECISION, INTENT(IN) :: z_position(-n_z:n_z), wave_phase_1(-n_z:n_z), wave_phase_2(-n_z:n_z)
     DOUBLE PRECISION, INTENT(IN) :: z_particle, u_p(0:2)
-    DOUBLE PRECISION, INTENT(OUT) :: wave_phase_p, wave_growth_phase_p
+    DOUBLE PRECISION, dimension(2), INTENT(OUT) :: wave_phase_p
     INTEGER :: i_z_left, i_z_right
-    DOUBLE PRECISION :: ratio, BB_p, electrostatic_potential_p, wave_number_perp_p, wave_phase_p_update
+    DOUBLE PRECISION :: ratio, BB_p, electrostatic_potential_1_p, electrostatic_potential_2_p, wave_number_perp_p
+    double precision, dimension(2) :: wave_phase_p_update
+    double precision :: channel_pm
 
+    
     CALL z_particle_to_position(z_particle, z_position, i_z_left, i_z_right, ratio)
     CALL z_position_to_BB(z_particle, BB_p)
-    CALL z_position_to_electrostatic_potential(z_particle, electrostatic_potential_p)
+    CALL z_position_to_electrostatic_potential(z_particle, electrostatic_potential_1_p, 1)
+    CALL z_position_to_electrostatic_potential(z_particle, electrostatic_potential_2_p, 2)
     CALL z_position_to_wave_number_perp(BB_p, wave_number_perp_p)
 
-    wave_phase_p = (1d0 - ratio) * wave_phase(i_z_left) + ratio * wave_phase(i_z_right)
+    wave_phase_p(1) = (1d0 - ratio) * wave_phase_1(i_z_left) + ratio * wave_phase_1(i_z_right)
+    wave_phase_p(2) = (1d0 - ratio) * wave_phase_2(i_z_left) + ratio * wave_phase_2(i_z_right)
 
-    CALL wave_phase_plus_perp_contribution(wave_phase_p, wave_number_perp_p, electrostatic_potential_p, z_particle, BB_p, u_p, &
-                                           & wave_phase_p_update, wave_growth_phase_p)
+    CALL wave_phase_plus_perp_contribution(wave_phase_p, wave_number_perp_p, electrostatic_potential_1_p, &
+        & electrostatic_potential_2_p, z_particle, BB_p, u_p, wave_phase_p_update)
     
     wave_phase_p = wave_phase_p_update
 

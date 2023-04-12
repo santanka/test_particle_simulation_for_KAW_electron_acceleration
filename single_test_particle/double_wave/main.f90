@@ -18,7 +18,6 @@ program main
 
     call write_time(string)
 
-    !write(command, '(A13, I3.3)') 'mkdir results', myrank
     write(command, '(A22)') 'mkdir results_particle'
     call system(command)
     write(command, '(A29, I3.3)') 'mkdir results_particle/myrank', myrank
@@ -32,20 +31,26 @@ program main
         call z_position_to_BB(z_position(i_z), BB(i_z))
         call z_position_to_wave_frequency(wave_frequency(i_z))
         call z_position_to_wave_number_perp(BB(i_z), wave_number_perp(i_z))
-        call z_position_to_wave_number_para(z_position(i_z), BB(i_z), wave_number_perp(i_z), wave_number_para(i_z))
-        call z_position_to_wave_growth_number_para(z_position(i_z), wave_growth_number_para(i_z))
-        call positions_to_wave_growth_phase(z_position(i_z), 0d0, wave_growth_phase(i_z))
-
-        !initial wave_phase profile
-        if (i_z == -n_z) then
-            wave_phase(i_z) = 0d0
-        else
-            CALL wave_number_para_to_wave_phase_initial(wave_number_para(i_z - 1), wave_number_para(i_z), & 
-                & wave_phase(i_z -1), wave_phase(i_z))
-        end if
-
-        !print *, z_position(i_z), BB(i_z), wave_number_perp(i_z), wave_number_para(i_z), wave_phase(i_z)
+        call z_position_to_wave_number_para(z_position(i_z), BB(i_z), wave_number_perp(i_z), wave_number_para_1(i_z), 1)
+        call z_position_to_wave_number_para(z_position(i_z), BB(i_z), wave_number_perp(i_z), wave_number_para_2(i_z), 2)
     end do !i_z
+
+    !initial wave_phase profile
+    wave_phase_1(0) = initial_wave_phase
+    wave_phase_2(0) = initial_wave_phase
+
+    do i_z = 1, n_z
+        call wave_number_para_to_wave_phase_initial(wave_number_para_1(i_z-1), wave_number_para_1(i_z), wave_phase_1(i_z-1), &
+        & wave_phase_1(i_z), 1d0)
+        call wave_number_para_to_wave_phase_initial(wave_number_para_1(1-i_z), wave_number_para_1(-i_z), wave_phase_1(1-i_z), &
+        & wave_phase_1(-i_z), -1d0)
+
+        call wave_number_para_to_wave_phase_initial(wave_number_para_2(i_z-1), wave_number_para_2(i_z), wave_phase_2(i_z-1), &
+        & wave_phase_2(i_z), 1d0)
+        call wave_number_para_to_wave_phase_initial(wave_number_para_2(1-i_z), wave_number_para_2(-i_z), wave_phase_2(1-i_z), &
+        & wave_phase_2(-i_z), -1d0)
+    end do !i_z
+
 
     !----------------------------
     !initial setting of particles
@@ -56,7 +61,7 @@ program main
     print *, clock
 
     !count the quantity of the data
-    WRITE(file_data, '(A37)') 'initial_condition_test_number_170.csv'
+    WRITE(file_data, '(A37)') 'initial_condition_test_number_180.csv'
     !WRITE(file_data, '(A17, I3.3, A4)') 'initial_condition', myrank, '.dat'
     OPEN (500, file = file_data)
     N_particle = 0
@@ -128,47 +133,72 @@ program main
         OPEN(unit = 10, file = file_check)
         do i_z = -n_z, n_z
             CALL z_position_to_ion_Larmor_radius(BB(i_z), ion_Larmor_radius(i_z))
-            CALL z_position_to_electrostatic_potential(z_position(i_z), electrostatic_potential(i_z))
-            call electrostatic_potential_to_EE_wave_para(electrostatic_potential(i_z), wave_number_para(i_z), wave_phase(i_z), &
-                & wave_growth_phase(i_z), EE_wave_para(i_z))
-            CALL electrostatic_potential_to_EE_wave_perp_perp(electrostatic_potential(i_z), wave_frequency(i_z), &
-                & wave_number_perp(i_z), wave_phase(i_z), wave_growth_phase(i_z), z_position(i_z), 0d0, EE_wave_perp_perp(i_z))
-            CALL electrostatic_potential_to_EE_wave_perp_phi(electrostatic_potential(i_z), wave_frequency(i_z), &
-                & wave_number_perp(i_z), wave_phase(i_z), wave_growth_phase(i_z), z_position(i_z), 0d0, EE_wave_perp_phi(i_z))
-            CALL electrostatic_potential_to_BB_wave_para(electrostatic_potential(i_z), wave_phase(i_z), wave_growth_phase(i_z), &
-                & z_position(i_z), BB_wave_para(i_z))
-            CAll electrostatic_potential_to_BB_wave_perp(electrostatic_potential(i_z), wave_phase(i_z), wave_growth_phase(i_z), &
-                & wave_frequency(i_z), wave_number_para(i_z), wave_number_perp(i_z), BB_wave_perp(i_z))
+
+            CALL z_position_to_electrostatic_potential(z_position(i_z), electrostatic_potential_1(i_z), 1)
+            CALL z_position_to_electrostatic_potential(z_position(i_z), electrostatic_potential_2(i_z), 2)
+
+            call electrostatic_potential_to_EE_wave_para(electrostatic_potential_1(i_z), wave_number_para_1(i_z), &
+                & wave_phase_1(i_z), EE_wave_para_1(i_z))
+            CALL electrostatic_potential_to_EE_wave_perp_perp(electrostatic_potential_1(i_z), wave_frequency(i_z), &
+                & wave_number_perp(i_z), wave_phase_1(i_z), z_position(i_z), 0d0, EE_wave_perp_perp_1(i_z))
+            CALL electrostatic_potential_to_EE_wave_perp_phi(electrostatic_potential_1(i_z), wave_frequency(i_z), &
+                & wave_number_perp(i_z), wave_phase_1(i_z), z_position(i_z), 0d0, EE_wave_perp_phi_1(i_z))
+            CALL electrostatic_potential_to_BB_wave_para(electrostatic_potential_1(i_z), wave_phase_1(i_z), z_position(i_z), &
+                & BB_wave_para_1(i_z))
+            CAll electrostatic_potential_to_BB_wave_perp(electrostatic_potential_1(i_z), wave_phase_1(i_z), wave_frequency(i_z), &
+                & wave_number_para_1(i_z), wave_number_perp(i_z), BB_wave_perp_1(i_z))
+
+            call electrostatic_potential_to_EE_wave_para(electrostatic_potential_2(i_z), wave_number_para_2(i_z), &
+                & wave_phase_2(i_z), EE_wave_para_2(i_z))
+            CALL electrostatic_potential_to_EE_wave_perp_perp(electrostatic_potential_2(i_z), wave_frequency(i_z), &
+                & wave_number_perp(i_z), wave_phase_2(i_z), z_position(i_z), 0d0, EE_wave_perp_perp_2(i_z))
+            CALL electrostatic_potential_to_EE_wave_perp_phi(electrostatic_potential_2(i_z), wave_frequency(i_z), &
+                & wave_number_perp(i_z), wave_phase_2(i_z), z_position(i_z), 0d0, EE_wave_perp_phi_2(i_z))
+            CALL electrostatic_potential_to_BB_wave_para(electrostatic_potential_2(i_z), wave_phase_2(i_z), z_position(i_z), &
+                & BB_wave_para_2(i_z))
+            CAll electrostatic_potential_to_BB_wave_perp(electrostatic_potential_2(i_z), wave_phase_2(i_z), wave_frequency(i_z), &
+                & wave_number_para_2(i_z), wave_number_perp(i_z), BB_wave_perp_2(i_z))
+            
             call z_position_to_alfven_velocity(BB(i_z), alfven_velocity(i_z))
             CALL z_position_to_beta_ion(BB(i_z), beta_ion(i_z))
             CALL z_position_to_number_density(number_density(i_z))
-            print *, z_position(i_z), 'ep = ', electrostatic_potential(i_z), 'ion_Larmor_radius =', ion_Larmor_radius(i_z)
-            print *, z_position(i_z), 'wnperp = ', wave_number_perp(i_z), 'Te = ', Temperature_electron
-            print *, z_position(i_z), 'Ti = ', Temperature_ion, 'ep0 = ', electrostatic_potential(i_z)
-            print *, z_position(i_z), 'V_unit = ', V_unit
-            print *, z_position(i_z), 'wnpara = ', wave_number_para(i_z)
-            print *, z_position(i_z), 'Ewpara = ', EE_wave_para(i_z)
-            print *
-            WRITE(10, '(20E15.7)') z_position(i_z) * z_unit * 1d-2 / R_E, & ![]→[cm]→[m]→[/R_E]
-                                & wave_number_para(i_z) / z_unit * 1d2 , & ![rad]→[rad/cm]→[rad/m]
+            !print *, z_position(i_z), 'ep = ', electrostatic_potential_1(i_z), 'ion_Larmor_radius =', ion_Larmor_radius(i_z)
+            !print *, z_position(i_z), 'wnperp = ', wave_number_perp(i_z), 'Te = ', Temperature_electron
+            !print *, z_position(i_z), 'Ti = ', Temperature_ion, 'ep0 = ', electrostatic_potential_0
+            !print *, z_position(i_z), 'V_unit = ', V_unit
+            !print *, z_position(i_z), 'wnpara = ', wave_number_para_1(i_z)
+            !print *, z_position(i_z), 'Ewpara = ', EE_wave_para_1(i_z)
+            !print *
+            WRITE(10, '(30E15.7)') z_position(i_z) * z_unit * 1d-2 / R_E, & ![]→[cm]→[m]→[/R_E]
+                                & wave_number_para_1(i_z) / z_unit * 1d2 , & ![rad]→[rad/cm]→[rad/m]
                                 & wave_number_perp(i_z) / z_unit * 1d2, & ![rad]→[rad/cm]→[rad/m]
                                 & wave_frequency(i_z) / t_unit, & ![rad]→[rad/s]
-                                & wave_frequency(i_z)/wave_number_para(i_z) * c / 1d2, & ![]→[cm/s]→[m/s]
-                                & electrostatic_potential(i_z) * V_unit * c / 1d8, & ![]→[statV]→[V]
-                                & EE_wave_para(i_z) * B0_eq * c / 1d6, & ![]→[statV/cm]→[V/m]
-                                & EE_wave_perp_perp(i_z) * B0_eq * c / 1d6, & ![]→[statV/cm]→[V/m]
-                                & EE_wave_perp_phi(i_z) * B0_eq * c / 1d6, & ![]→[statV/cm]→[V/m]
-                                & BB_wave_para(i_z) * B0_eq / 1d4, & ![]→[G]→[T]
-                                & BB_wave_perp(i_z) * B0_eq / 1d4, & ![]→[G]→[T]
+                                & wave_frequency(i_z)/wave_number_para_1(i_z) * c / 1d2, & ![]→[cm/s]→[m/s]
+                                & electrostatic_potential_1(i_z) * V_unit * c / 1d8, & ![]→[statV]→[V]
+                                & EE_wave_para_1(i_z) * B0_eq * c / 1d6, & ![]→[statV/cm]→[V/m]
+                                & EE_wave_perp_perp_1(i_z) * B0_eq * c / 1d6, & ![]→[statV/cm]→[V/m]
+                                & EE_wave_perp_phi_1(i_z) * B0_eq * c / 1d6, & ![]→[statV/cm]→[V/m]
+                                & BB_wave_para_1(i_z) * B0_eq / 1d4, & ![]→[G]→[T]
+                                & BB_wave_perp_1(i_z) * B0_eq / 1d4, & ![]→[G]→[T]
+                                & MOD(wave_phase_1(i_z), 2*pi), &
+                                & wave_number_para_2(i_z) / z_unit * 1d2 , & ![rad]→[rad/cm]→[rad/m]
+                                & wave_number_perp(i_z) / z_unit * 1d2, & ![rad]→[rad/cm]→[rad/m]
+                                & wave_frequency(i_z) / t_unit, & ![rad]→[rad/s]
+                                & wave_frequency(i_z)/wave_number_para_2(i_z) * c / 1d2, & ![]→[cm/s]→[m/s]
+                                & electrostatic_potential_2(i_z) * V_unit * c / 1d8, & ![]→[statV]→[V]
+                                & EE_wave_para_2(i_z) * B0_eq * c / 1d6, & ![]→[statV/cm]→[V/m]
+                                & EE_wave_perp_perp_2(i_z) * B0_eq * c / 1d6, & ![]→[statV/cm]→[V/m]
+                                & EE_wave_perp_phi_2(i_z) * B0_eq * c / 1d6, & ![]→[statV/cm]→[V/m]
+                                & BB_wave_para_2(i_z) * B0_eq / 1d4, & ![]→[G]→[T]
+                                & BB_wave_perp_2(i_z) * B0_eq / 1d4, & ![]→[G]→[T]
+                                & MOD(wave_phase_2(i_z), 2*pi), &
                                 & alfven_velocity(i_z) * c / 1d2, & ![]→[cm/s]→[m/s]
                                 & ion_Larmor_radius(i_z) * z_unit * 1d-2, & ![]→[cm]→[m]
                                 & beta_ion(i_z), &
                                 & BB(i_z) * B0_eq / 1d4, & ![]→[G]→[T]
                                 & Temperature_ion * J_unit * 1d-7 / (q/c*1d1), &![]→[erg]→[J]→[eV]
                                 & Temperature_electron * J_unit * 1d-7 / (q/c*1d1), &![]→[erg]→[J]→[eV]
-                                & number_density(i_z) / z_unit**3d0 * 1d6, & ![]→[cm^-3]→[m^-3]
-                                & MOD(wave_phase(i_z), 2*pi), &
-                                & wave_growth_phase(i_z)
+                                & number_density(i_z) / z_unit**3d0 * 1d6 ![]→[cm^-3]→[m^-3]
         end do !i_z
         wave_exist_parameter = 1d0
         CLOSE(10)
@@ -209,7 +239,8 @@ program main
         !update wave_phase
         !-----------------
         do i_z = -n_z, n_z
-            CALL time_to_wave_phase_update(wave_phase(i_z), wave_frequency(i_z))
+            CALL time_to_wave_phase_update(wave_phase_1(i_z), wave_frequency(i_z))
+            CALL time_to_wave_phase_update(wave_phase_2(i_z), wave_frequency(i_z))
         end do !i_z
 
         if(mod(i_time, 100) == 1) print *, 'pass time_to_wave_phase_update: i_time =', i_time
@@ -218,7 +249,7 @@ program main
         !$omp parallel num_threads(n_thread) &
         !$omp & private(i_particle, z_particle_sim, u_particle_sim, equator_flag_sim, wave_flag_sim, edge_flag_sim, &
         !$omp & N_file, alpha_particle_eq, energy_particle, BB_particle, alpha, v_particle, v_particle_para, v_particle_perp, &
-        !$omp & wave_phase_sim, wave_phase_update, wave_phase_update2, wave_growth_phase_sim)
+        !$omp & wave_phase_sim, wave_phase_update, wave_phase_update2)
         !$omp do
         do i_particle = 1, N_particle
             !if(mod(i_time, 100) == 1) print *, 'pass time_to_wave_phase_update: i_time =', i_time, ', i_particle =', i_particle, &
@@ -226,9 +257,9 @@ program main
 
             if(edge_flag(i_particle) /= 1) then
             
-                if(mod(i_time, 100) == 1 .and. mod(i_particle, 100) == 1) then
-                    print *, myrank, i_time
-                end if
+                !if(mod(i_time, 100) == 1 .and. mod(i_particle, 100) == 1) then
+                !    print *, myrank, i_time
+                !end if
 
                 z_particle_sim = z_particle(i_particle)
                 u_particle_sim(:) = u_particle(:, i_particle)
@@ -242,8 +273,8 @@ program main
                     print *, myrank, i_time, N_file, i_particle, z_particle(i_particle), z_particle_sim, u_particle_sim(:)
                 end if
 
-                CALL particle_update_by_runge_kutta(z_position, wave_phase, z_particle_sim, &
-                    & u_particle_sim, equator_flag_sim, edge_flag_sim, wave_exist_parameter,wave_phase_update,wave_growth_phase_sim)
+                call particle_update_by_runge_kutta(z_position, wave_phase_1, wave_phase_2, z_particle_sim, &
+                    & u_particle_sim, equator_flag_sim, edge_flag_sim, wave_exist_parameter, wave_phase_update)
                 
                 wave_phase_sim = wave_phase_update
 
@@ -251,8 +282,8 @@ program main
                     print *, 'z_particle_sim = ', z_particle_sim, ', u_particle_sim(:) = ', u_particle_sim
                 end if
 
-                CALL z_particle_to_wave_phase(z_position, z_particle_sim, u_particle_sim, wave_phase, wave_phase_update2, &
-                    & wave_growth_phase_sim)
+                CALL z_particle_to_wave_phase(z_position, z_particle_sim, u_particle_sim, wave_phase_1, wave_phase_2, &
+                    & wave_phase_update2)
 
                 wave_phase_sim = wave_phase_update2
 
@@ -267,8 +298,8 @@ program main
                                                         & MODULO(u_particle_sim(2), 2d0 * pi) , & ![rad]
                                                         & energy_particle * J_unit * 1d-7 / (q/c*1d1) , & ![]→[erg]→[J]→[eV]
                                                         & alpha_particle_eq, & ![degree]
-                                                        & MODULO(wave_phase_sim, 2d0*pi), & ![rad]
-                                                        & wave_growth_phase_sim ![]
+                                                        & MODULO(wave_phase_sim(1), 2d0*pi), & ![rad]
+                                                        & MODULO(wave_phase_sim(2), 2d0*pi) ![rad]
                 if(mod(i_time, 100) == 1 .and. mod(i_particle, 100) == 1) then
                     print *, 'pass write: i_time =', i_time, ', i_particle =', i_particle
                 end if
