@@ -1,10 +1,11 @@
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import os
 
 wave_scalar_potential   = 600E0     #[V]
-initial_wavephase       = 0E0       #[deg]
-gradient_parameter      = 4E0       #[]
+initial_wavephase       = 270E0       #[deg]
+gradient_parameter      = 2E0       #[]
 wave_threshold          = 5E0       #[deg]
 
 wavekind                = r'EparaBpara'
@@ -14,11 +15,11 @@ switch_delta_Eperp_phi  = 0E0
 switch_delta_Bpara      = 1E0
 switch_delta_Bperp      = 0E0
 
-particle_file_number    = r'20-102'
+particle_file_number    = r'30-153'
 data_limit_under        = 0
 data_limit_upper        = 100000
 
-channel = 12
+channel = 1
 #1:trajectory, 2:energy & equatorial pitch angle, 3:delta_Epara (t=0), 4:delta_Eperpperp (t=0), 5:delta_Eperpphi (t=0)
 #6:delta_Bpara (t=0), 7:delta_Bperp (t=0), 8:wave frequency, 9:wavelength, 10:wavephase variation on particle
 #11:wavephase on particle vs. wave phase speed, 12:wave parallel components' forces, 13:particle velocity
@@ -38,9 +39,9 @@ temperature_electron = 1E2  #[eV]
 
 
 dir_name = f'/mnt/j/KAW_simulation_data/single_test_particle/double_wave/results_particle_{str(int(wave_scalar_potential))}V' \
-    + f'_gradient_{int(gradient_parameter)}_threshold_{int(wave_threshold)}_wavephase_{int(initial_wavephase)}_{wavekind}/myrank000/'
-file_name_particle  = f'{dir_name}particle_trajectory{particle_file_number}.dat'
-file_name_wave      = f'{dir_name}potential_prof.dat'
+    + f'_gradient_{int(gradient_parameter)}_threshold_{int(wave_threshold)}_wavephase_{int(initial_wavephase)}_{wavekind}'
+file_name_particle  = f'{dir_name}/myrank000/particle_trajectory{particle_file_number}.dat'
+file_name_wave      = f'{dir_name}/myrank000/potential_prof.dat'
 
 print(file_name_particle)
 print(file_name_wave)
@@ -117,6 +118,22 @@ mpl.rcParams['font.serif'] = ['Computer Modern Roman']
 mpl.rcParams['mathtext.fontset'] = 'cm'
 plt.rcParams["font.size"] = 25
 
+#ファイルの確認
+def check_file_exists(filename):
+    if os.path.isfile(filename):
+        return True
+    else:
+        return False
+    
+#フォルダの作成
+def mkdir(path_name):
+    if (check_file_exists(path_name) == False):
+        #ディレクトリの生成 (ディレクトリは要指定)
+        try:
+            os.makedirs(path_name)
+        except FileExistsError:
+            pass
+
 
 def z_position_m_to_mlat_rad(z_position):
     array_length = len(z_position)
@@ -156,18 +173,27 @@ if (channel == 1):
     fig.colorbar(mappable=mappable, ax=ax, label=r'time [s]')
     ax.scatter(mlat_deg[0], dp_v_para[0]/speed_of_light, marker='o', color='r', label=r'start', zorder=3, s=200)
     ax.scatter(mlat_deg[-1], dp_v_para[-1]/speed_of_light, marker='D', color='r', label=r'end', zorder=3, s=200)
+    
+    ax.autoscale()
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
 
     mlat_deg_wave = z_position_m_to_mlat_rad(dw_z_position*planet_radius) * rad2deg
     dw_wave_phasespeed_major = get_major_wave_component(mlat_deg_wave, dw_wave_phasespeed_1, dw_wave_phasespeed_2)
     ax.plot(mlat_deg_wave, dw_wave_phasespeed_major/speed_of_light, linestyle='-.', color='orange', linewidth='4')
 
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
     ax.minorticks_on()
     ax.grid(which='both', alpha=0.3)
     ax.set_axisbelow(True)
     ax.legend()
 
+    mkdir(f'{dir_name}/result_trajectory')
+    fig.savefig(f'{dir_name}/result_trajectory/particle_trajectory{particle_file_number}.png')
+
 if (channel == 2):
-    fig = plt.figure(figsize=(14, 28), dpi=100, tight_layout=True)
+    fig = plt.figure(figsize=(24, 12), dpi=100, tight_layout=True)
     ax1 = fig.add_subplot(121, xlabel=r'time [s]', ylabel=r'energy [eV]')
     ax1.plot(dp_time, dp_energy)
     ax1.minorticks_on()
@@ -177,6 +203,7 @@ if (channel == 2):
     ax2.plot(dp_time, dp_pitchangle_eq)
     ax2.minorticks_on()
     ax2.grid(which='both', alpha=0.3)
+    fig.savefig(f'{dir_name}/result_energy_eqpitchangle/particle_trajectory{particle_file_number}.png')
 
 def profile_plot_mlat(z_position_m, profile, profile_name):
     mlat_deg = z_position_m_to_mlat_rad(z_position_m) * rad2deg
@@ -239,6 +266,7 @@ if (channel == 10):
     ax.plot(dp_time, dp_wavephase_major)
     ax.minorticks_on()
     ax.grid(which="both", alpha=0.3)
+    fig.savefig(f'{dir_name}/result_wavephase/particle_trajectory{particle_file_number}.png')
 
 if (channel == 11):
     dp_mlat_rad = z_position_m_to_mlat_rad(dp_z_position)
@@ -259,6 +287,7 @@ if (channel == 11):
     ax.scatter(dp_wavephase_major[-1], dp_theta[-1], marker='D', color='r', label='start', zorder=3, s=200)
     ax.minorticks_on()
     ax.grid(which="both", alpha=0.3)
+    fig.savefig(f'{dir_name}/result_wavephase_phasespeed/particle_trajectory{particle_file_number}.png')
 
 if (channel == 12):
     array_size = len(dp_z_position)
@@ -328,7 +357,7 @@ if (channel == 12):
     F_mirror_wave_dg_dz = - mass_electron * (dp_u_perp*1E2)**2E0 / 2E0 / (dp_B0 + dp_deltaBpara_sum) / dp_gamma * dg_dz_function_sum * 1E-5  #[N]
     F_electric          = - (elementary_charge/1E1*speed_of_light*1E2) * dp_deltaEpara_sum * 1E-5   #[N]
 
-    fig = plt.figure(figsize=(14, 14), dpi=100, tight_layout=True)
+    fig = plt.figure(figsize=(24, 12), dpi=100, tight_layout=True)
     ax = fig.add_subplot(111, xlabel=r'time [s]', ylabel=r'Force [N]')
     ax.plot(dp_time, F_mirror_background, color='purple', alpha=0.5, label=r'$F_{B_0}$', lw=4)
     if (switch_delta_Bpara == 1E0):
@@ -341,8 +370,10 @@ if (channel == 12):
     ax.grid(which="both", alpha=0.3)
     ax.legend()
 
+    fig.savefig(f'{dir_name}/result_parallel_force/particle_trajectory{particle_file_number}.png')
+
 if (channel == 13):
-    fig = plt.figure(figsize=(14, 28), dpi=100, tight_layout=True)
+    fig = plt.figure(figsize=(24, 12), dpi=100, tight_layout=True)
     ax1 = fig.add_subplot(121, xlabel=r'time [s]', ylabel=r'parallel velocity [/c]')
     ax1.plot(dp_time, dp_v_para/speed_of_light)
     ax1.minorticks_on()
@@ -352,6 +383,6 @@ if (channel == 13):
     ax2.plot(dp_time, dp_v_perp/speed_of_light)
     ax2.minorticks_on()
     ax2.grid(which='both', alpha=0.3)
+    fig.savefig(f'{dir_name}/result_particle_velocity/particle_trajectory{particle_file_number}.png')
 
-
-plt.show()
+#plt.show()
