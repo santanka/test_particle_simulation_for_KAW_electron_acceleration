@@ -5,8 +5,8 @@ program main
 
     integer, parameter :: thread_number = 36
     integer, parameter :: particle_in_thread = 5
-    CHARACTER(112), dimension(thread_number) :: file_input
-    character(116), dimension(thread_number, particle_in_thread) :: file_output
+    CHARACTER(119), dimension(thread_number) :: file_input
+    character(123), dimension(thread_number, particle_in_thread) :: file_output
     INTEGER :: particle_number
     DOUBLE PRECISION :: time_simulation, z_position, u_para, u_perp, u_phi, energy, pitch_angle_eq, wave_phase, wave_growth_phase
 
@@ -29,8 +29,8 @@ program main
     
         write(thread_i_character, '(I2.2)') thread_i
         file_input(thread_i + 1) = &
-            & '/mnt/j/KAW_simulation_data/single_test_particle/double_wave/results_particle/myrank000/particle_trajectory' // &
-            & thread_i_character // '.dat'
+        & '/mnt/j/KAW_simulation_data/single_test_particle/double_wave_packet/results_particle/myrank000/particle_trajectory' // &
+        & thread_i_character // '.dat'
 
         thread_file_number(thread_i + 1) = 100 + thread_i
 
@@ -45,8 +45,8 @@ program main
             write(particle_i_character, '(I3.3)') particle_i + particle_in_thread * thread_i
             
             file_output(thread_i +1, particle_i) &
-                & = '/mnt/j/KAW_simulation_data/single_test_particle/double_wave/results_particle/myrank000/particle_trajectory' //&
-                & thread_i_character // '-' // particle_i_character // '.dat'
+        & = '/mnt/j/KAW_simulation_data/single_test_particle/double_wave_packet/results_particle/myrank000/particle_trajectory'//&
+            & thread_i_character // '-' // particle_i_character // '.dat'
 
             output_file_number(thread_i +1, particle_i) = 200 + particle_i + particle_in_thread * thread_i
 
