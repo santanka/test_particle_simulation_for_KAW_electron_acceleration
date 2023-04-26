@@ -298,8 +298,8 @@ program main
                                                         & MODULO(u_particle_sim(2), 2d0 * pi) , & ![rad]
                                                         & energy_particle * J_unit * 1d-7 / (q/c*1d1) , & ![]→[erg]→[J]→[eV]
                                                         & alpha_particle_eq, & ![degree]
-                                                        & MODULO(wave_phase_sim(1), 2d0*pi), & ![rad]
-                                                        & MODULO(wave_phase_sim(2), 2d0*pi) ![rad]
+                                                        & wave_phase_sim(1), & ![rad]
+                                                        & wave_phase_sim(2) ![rad]
                 if(mod(i_time, 100) == 1 .and. mod(i_particle, 100) == 1) then
                     print *, 'pass write: i_time =', i_time, ', i_particle =', i_particle
                 end if

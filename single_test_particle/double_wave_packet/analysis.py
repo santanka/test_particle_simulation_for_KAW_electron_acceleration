@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import os
 
 wave_scalar_potential   = 600E0     #[V]
-initial_wavephase       = 270E0       #[deg]
+initial_wavephase       = 0E0       #[deg]
 gradient_parameter      = 2E0       #[]
 wave_threshold          = 5E0       #[deg]
 
@@ -15,13 +15,13 @@ switch_delta_Eperp_phi  = 0E0
 switch_delta_Bpara      = 1E0
 switch_delta_Bperp      = 0E0
 
-switch_wave_packet = 0E0
+switch_wave_packet = 1E0
 
-particle_file_number    = r'30-153'
+particle_file_number    = r'20-101'
 data_limit_under        = 0
-data_limit_upper        = 100000
+data_limit_upper        = 200000
 
-channel = 12
+channel = 11
 #1:trajectory, 2:energy & equatorial pitch angle, 3:delta_Epara (t=0), 4:delta_Eperpperp (t=8pi/wave_freq), 5:delta_Eperpphi (t=8pi/wave_freq)
 #6:delta_Bpara (t=8pi/wave_freq), 7:delta_Bperp (t=8pi/wave_freq), 8:wave frequency, 9:wavelength, 10:wavephase variation on particle
 #11:wavephase on particle vs. wave phase speed, 12:wave parallel components' forces, 13:particle velocity
@@ -40,7 +40,7 @@ temperature_ion = 1E3   #[eV]
 temperature_electron = 1E2  #[eV]
 
 
-dir_name = f'/mnt/j/KAW_simulation_data/single_test_particle/double_wave/results_particle_{str(int(wave_scalar_potential))}V' \
+dir_name = f'/mnt/j/KAW_simulation_data/single_test_particle/double_wave_packet/results_particle_{str(int(wave_scalar_potential))}V' \
     + f'_gradient_{int(gradient_parameter)}_threshold_{int(wave_threshold)}_wavephase_{int(initial_wavephase)}_{wavekind}'
 file_name_particle  = f'{dir_name}/myrank000/particle_trajectory{particle_file_number}.dat'
 file_name_wave      = f'{dir_name}/myrank000/potential_prof.dat'
@@ -268,6 +268,7 @@ if (channel == 10):
     ax.plot(dp_time, dp_wavephase_major)
     ax.minorticks_on()
     ax.grid(which="both", alpha=0.3)
+    mkdir(f'{dir_name}/result_wavephase')
     fig.savefig(f'{dir_name}/result_wavephase/particle_trajectory{particle_file_number}.png')
 
 if (channel == 11):
@@ -280,15 +281,16 @@ if (channel == 11):
     dp_theta = dp_v_para / dp_phasespeed - 1E0
 
     dp_wavephase_major = get_major_wave_component(dp_z_position, dp_wavephase_1, dp_wavephase_2)
-    dp_wavephase_major = np.mod(dp_wavephase_major+np.pi, 2E0*np.pi) - np.pi
 
     fig = plt.figure(figsize=(14, 14), dpi=100, tight_layout=True)
     ax = fig.add_subplot(111, xlabel=r'wave phase $\psi$ [rad]', ylabel=r'$\frac{v_{\parallel}}{V_{R \parallel}}-1$')
     ax.plot(dp_wavephase_major, dp_theta)
     ax.scatter(dp_wavephase_major[0], dp_theta[0], marker='o', color='r', label='start', zorder=3, s=200)
     ax.scatter(dp_wavephase_major[-1], dp_theta[-1], marker='D', color='r', label='start', zorder=3, s=200)
+    ax.set_xlim(initial_wavephase*deg2rad-8*np.pi, initial_wavephase*deg2rad)
     ax.minorticks_on()
     ax.grid(which="both", alpha=0.3)
+    mkdir(f'{dir_name}/result_wavephase_phasespeed')
     fig.savefig(f'{dir_name}/result_wavephase_phasespeed/particle_trajectory{particle_file_number}.png')
 
 def make_h_function(array_size, wave_phase, kpara):
@@ -296,9 +298,9 @@ def make_h_function(array_size, wave_phase, kpara):
     dh_dz = np.zeros(array_size)
     if (switch_wave_packet == 1E0):
         for count_i in range(array_size):
-            if (wave_phase[count_i] >= initial_wavephase-8.*np.pi and wave_phase[count_i] <= initial_wavephase):
-                h_function[count_i] = 5E-1 * (1E0 - np.cos(1E0/4E0 * (wave_phase[count_i] - initial_wavephase)))
-                dh_dz[count_i] = kpara[count_i] / 8E0 * np.sin((wave_phase[count_i] - initial_wavephase) / 4E0)
+            if (wave_phase[count_i] >= initial_wavephase*deg2rad-8.*np.pi and wave_phase[count_i] <= initial_wavephase*deg2rad):
+                h_function[count_i] = 5E-1 * (1E0 - np.cos(1E0/4E0 * (wave_phase[count_i] - initial_wavephase*deg2rad)))
+                dh_dz[count_i] = kpara[count_i] / 8E0 * np.sin((wave_phase[count_i] - initial_wavephase*deg2rad) / 4E0)
             else:
                 h_function[count_i] = 0E0
                 dh_dz[count_i] == 0E0
@@ -306,6 +308,8 @@ def make_h_function(array_size, wave_phase, kpara):
         
 
 if (channel == 12):
+    mkdir(f'{dir_name}/result_parallel_force')
+    
     array_size = len(dp_z_position)
     dp_mlat_rad = z_position_m_to_mlat_rad(dp_z_position)
 

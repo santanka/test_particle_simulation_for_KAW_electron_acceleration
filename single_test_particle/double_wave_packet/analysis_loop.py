@@ -3,10 +3,11 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import os
 from multiprocessing import Pool
+import datetime
 
 wave_scalar_potential   = 600E0     #[V]
-initial_wavephase_list       = [90E0, 180E0, 270E0]       #[deg]
-gradient_parameter      = 2E0       #[]
+initial_wavephase_list       = [0E0, 90E0, 180E0, 270E0]       #[deg]
+gradient_parameter_list      = [1E0, 2E0, 4E0]       #[]
 wave_threshold          = 5E0       #[deg]
 
 wavekind_list                = [r'EparaBpara', r'Epara', r'Bpara']
@@ -16,11 +17,11 @@ switch_delta_Eperp_phi  = 0E0
 switch_delta_Bpara_list      = [1E0, 0E0, 1E0]
 switch_delta_Bperp      = 0E0
 
-switch_wave_packet = 0E0
+switch_wave_packet = 1E0
 
 #particle_file_number    = r'20-102'
 data_limit_under        = 0
-data_limit_upper        = 100000
+data_limit_upper        = 200000
 
 initial_particle_number = 180
 initial_particle_number_divide = 5
@@ -44,20 +45,58 @@ temperature_electron = 1E2  #[eV]
 
 wavephaselist_number = len(initial_wavephase_list)
 wavekindlist_number = len(wavekind_list)
+gradientparameter_number = len(gradient_parameter_list)
 
-def main(count_angle, count_kind, particle_file_number, channel):
+#ファイルの確認
+def check_file_exists(filename):
+    if os.path.isfile(filename):
+        return True
+    else:
+        return False
+
+#フォルダの作成
+def mkdir(path_name):
+    if (check_file_exists(path_name) == False):
+        #ディレクトリの生成 (ディレクトリは要指定)
+        try:
+            os.makedirs(path_name)
+        except FileExistsError:
+            pass
+    return
+
+def main(count_grad, count_angle, count_kind, particle_file_number, channel):
     wavekind = wavekind_list[count_kind]
     switch_delta_Epara = switch_delta_Epara_list[count_kind]
     switch_delta_Bpara = switch_delta_Bpara_list[count_kind]
     initial_wavephase = initial_wavephase_list[count_angle]
+    gradient_parameter = gradient_parameter_list[count_grad]
 
-    dir_name = f'/mnt/j/KAW_simulation_data/single_test_particle/double_wave/results_particle_{str(int(wave_scalar_potential))}V' \
+    dir_name = f'/mnt/j/KAW_simulation_data/single_test_particle/double_wave_packet/results_particle_{str(int(wave_scalar_potential))}V' \
         + f'_gradient_{int(gradient_parameter)}_threshold_{int(wave_threshold)}_wavephase_{int(initial_wavephase)}_{wavekind}'
     file_name_particle  = f'{dir_name}/myrank000/particle_trajectory{particle_file_number}.dat'
     file_name_wave      = f'{dir_name}/myrank000/potential_prof.dat'
 
-    #print(file_name_particle)
-    #print(file_name_wave)
+    if (check_file_exists(file_name_particle) == False):
+        return
+    
+    if (channel == 1):
+        if (check_file_exists(f'{dir_name}/result_trajectory/particle_trajectory{particle_file_number}.png') == True):
+            return
+    elif (channel == 2):
+        if (check_file_exists(f'{dir_name}/result_energy_eqpitchangle/particle_trajectory{particle_file_number}.png') == True):
+            return
+    elif (channel == 10):
+        if (check_file_exists(f'{dir_name}/result_wavephase/particle_trajectory{particle_file_number}.png') == True):
+            return
+    elif (channel == 11):
+        if (check_file_exists(f'{dir_name}/result_wavephase_phasespeed/particle_trajectory{particle_file_number}.png') == True):
+            return
+    elif (channel == 12):
+        if (check_file_exists(f'{dir_name}/result_parallel_force/particle_trajectory{particle_file_number}.png') == True):
+            return
+    elif (channel == 13):
+        if (check_file_exists(f'{dir_name}/result_particle_velocity/particle_trajectory{particle_file_number}.png') == True):
+            return
 
     data_particle   = np.genfromtxt(file_name_particle, unpack=True)
     data_particle   = data_particle[:, data_limit_under:data_limit_upper]
@@ -131,22 +170,6 @@ def main(count_angle, count_kind, particle_file_number, channel):
     mpl.rcParams['mathtext.fontset'] = 'cm'
     plt.rcParams["font.size"] = 25
 
-    #ファイルの確認
-    def check_file_exists(filename):
-        if os.path.isfile(filename):
-            return True
-        else:
-            return False
-
-    #フォルダの作成
-    def mkdir(path_name):
-        if (check_file_exists(path_name) == False):
-            #ディレクトリの生成 (ディレクトリは要指定)
-            try:
-                os.makedirs(path_name)
-            except FileExistsError:
-                pass
-
 
     def z_position_m_to_mlat_rad(z_position):
         array_length = len(z_position)
@@ -180,8 +203,6 @@ def main(count_angle, count_kind, particle_file_number, channel):
 
     if (channel == 1):
         mkdir(f'{dir_name}/result_trajectory')
-        if (check_file_exists(f'{dir_name}/result_trajectory/particle_trajectory{particle_file_number}.png') == True):
-            return
 
         mlat_deg = z_position_m_to_mlat_rad(dp_z_position) * rad2deg
         fig = plt.figure(figsize=(14, 14), dpi=100, tight_layout=True)
@@ -210,8 +231,6 @@ def main(count_angle, count_kind, particle_file_number, channel):
 
     if (channel == 2):
         mkdir(f'{dir_name}/result_energy_eqpitchangle')
-        if (check_file_exists(f'{dir_name}/result_energy_eqpitchangle/particle_trajectory{particle_file_number}.png') == True):
-            return
         
         fig = plt.figure(figsize=(24, 12), dpi=100, tight_layout=True)
         ax1 = fig.add_subplot(121, xlabel=r'time [s]', ylabel=r'energy [eV]')
@@ -281,8 +300,6 @@ def main(count_angle, count_kind, particle_file_number, channel):
 
     if (channel == 10):
         mkdir(f'{dir_name}/result_wavephase')
-        if (check_file_exists(f'{dir_name}/result_wavephase/particle_trajectory{particle_file_number}.png') == True):
-            return
         
         dp_wavephase_major = get_major_wave_component(dp_z_position, dp_wavephase_1, dp_wavephase_2)
         dp_wavephase_major = np.mod(dp_wavephase_major+np.pi, 2E0*np.pi) - np.pi
@@ -296,8 +313,6 @@ def main(count_angle, count_kind, particle_file_number, channel):
 
     if (channel == 11):
         mkdir(f'{dir_name}/result_wavephase_phasespeed')
-        if (check_file_exists(f'{dir_name}/result_wavephase_phasespeed/particle_trajectory{particle_file_number}.png') == True):
-            return
         
         dp_mlat_rad = z_position_m_to_mlat_rad(dp_z_position)
         b0 = B0_eq / np.cos(dp_mlat_rad)**6E0 * np.sqrt(1E0 + 3E0 * np.sin(dp_mlat_rad)**2E0) * 1E4     #[G]
@@ -308,13 +323,13 @@ def main(count_angle, count_kind, particle_file_number, channel):
         dp_theta = dp_v_para / dp_phasespeed - 1E0
 
         dp_wavephase_major = get_major_wave_component(dp_z_position, dp_wavephase_1, dp_wavephase_2)
-        dp_wavephase_major = np.mod(dp_wavephase_major+np.pi, 2E0*np.pi) - np.pi
 
         fig = plt.figure(figsize=(14, 14), dpi=100, tight_layout=True)
         ax = fig.add_subplot(111, xlabel=r'wave phase $\psi$ [rad]', ylabel=r'$\frac{v_{\parallel}}{V_{R \parallel}}-1$')
         ax.plot(dp_wavephase_major, dp_theta)
         ax.scatter(dp_wavephase_major[0], dp_theta[0], marker='o', color='r', label='start', zorder=3, s=200)
         ax.scatter(dp_wavephase_major[-1], dp_theta[-1], marker='D', color='r', label='start', zorder=3, s=200)
+        ax.set_xlim(initial_wavephase*deg2rad-8*np.pi, initial_wavephase*deg2rad)
         ax.minorticks_on()
         ax.grid(which="both", alpha=0.3)
 
@@ -325,9 +340,9 @@ def main(count_angle, count_kind, particle_file_number, channel):
         dh_dz = np.zeros(array_size)
         if (switch_wave_packet == 1E0):
             for count_i in range(array_size):
-                if (wave_phase[count_i] >= initial_wavephase-8.*np.pi and wave_phase[count_i] <= initial_wavephase):
-                    h_function[count_i] = 5E-1 * (1E0 - np.cos(1E0/4E0 * (wave_phase[count_i] - initial_wavephase)))
-                    dh_dz[count_i] = kpara[count_i] / 8E0 * np.sin((wave_phase[count_i] - initial_wavephase) / 4E0)
+                if (wave_phase[count_i] >= initial_wavephase*deg2rad-8.*np.pi and wave_phase[count_i] <= initial_wavephase*deg2rad):
+                    h_function[count_i] = 5E-1 * (1E0 - np.cos(1E0/4E0 * (wave_phase[count_i] - initial_wavephase*deg2rad)))
+                    dh_dz[count_i] = kpara[count_i] / 8E0 * np.sin((wave_phase[count_i] - initial_wavephase*deg2rad) / 4E0)
                 else:
                     h_function[count_i] = 0E0
                     dh_dz[count_i] == 0E0
@@ -335,8 +350,6 @@ def main(count_angle, count_kind, particle_file_number, channel):
 
     if (channel == 12):
         mkdir(f'{dir_name}/result_parallel_force')
-        if (check_file_exists(f'{dir_name}/result_parallel_force/particle_trajectory{particle_file_number}.png') == True):
-            return
 
         array_size = len(dp_z_position)
         dp_mlat_rad = z_position_m_to_mlat_rad(dp_z_position)
@@ -432,8 +445,6 @@ def main(count_angle, count_kind, particle_file_number, channel):
 
     if (channel == 13):
         mkdir(f'{dir_name}/result_particle_velocity')
-        if (check_file_exists(f'{dir_name}/result_particle_velocity/particle_trajectory{particle_file_number}.png') == True):
-            return
         
         fig = plt.figure(figsize=(24, 12), dpi=100, tight_layout=True)
         ax1 = fig.add_subplot(121, xlabel=r'time [s]', ylabel=r'parallel velocity [/c]')
@@ -448,13 +459,16 @@ def main(count_angle, count_kind, particle_file_number, channel):
 
         fig.savefig(f'{dir_name}/result_particle_velocity/particle_trajectory{particle_file_number}.png')
 
+    plt.close()
+
 def main_loop(args):
-    count_angle, count_kind, count_i, channel_idx = args
+    count_grad, count_angle, count_kind, count_i, channel_idx = args
     count_file = int(np.floor(count_i/initial_particle_number_divide))
     particle_file_number = f'{str(count_file).zfill(2)}-{str(count_i+1).zfill(3)}'
     channel = channel_list[channel_idx]
-    print(r'kind: ' + str(count_kind) + r', file number: ' + str(particle_file_number) + r',  channel = ' + str(channel).zfill(2))
-    main(count_angle, count_kind=count_kind, particle_file_number=particle_file_number, channel=channel)
+    now = str(datetime.datetime.now())
+    print(r'analysis loop: gradient: ' + str(count_grad) + r', phase: ' + str(count_angle) + r', kind: ' + str(count_kind) + r', file number: ' + str(particle_file_number) + r',  channel = ' + str(channel).zfill(2) + r'   ' + now)
+    main(count_grad=count_grad, count_angle=count_angle, count_kind=count_kind, particle_file_number=particle_file_number, channel=channel)
 
 #並列処理
 if __name__ == '__main__':
@@ -464,14 +478,16 @@ if __name__ == '__main__':
     # 非同期処理の指定
     with Pool(processes=num_processes) as pool:
         results = []
-        for count_angle in range(wavephaselist_number):
-            for count_kind in range(wavekindlist_number):
-                for count_i in range(initial_particle_number):
-                    result = pool.apply_async(main_loop, [(count_angle, count_kind, count_i)])
-                    results.append(result)
+        for count_grad in range(gradientparameter_number):
+            for count_angle in range(wavephaselist_number):
+                for count_kind in range(wavekindlist_number):
+                    for count_i in range(initial_particle_number):
+                        for channel_idx in range(6):
+                            result = pool.apply_async(main_loop, [(count_grad, count_angle, count_kind, count_i, channel_idx)])
+                            results.append(result)
         # 全ての非同期処理の終了を待機
         for result in results:
             result.get()
 
-    print(r'finish')
-    quit()
+        print(r'finish')
+        quit()

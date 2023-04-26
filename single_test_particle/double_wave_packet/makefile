@@ -7,7 +7,7 @@ OBJ  = mt19937.o \
        constant_parameter.o \
        lshell_setting.o \
        constants_in_the_simulations.o \
-       variables_main.o \
+       main_variables.o \
        subroutines.o \
        main.o \
 

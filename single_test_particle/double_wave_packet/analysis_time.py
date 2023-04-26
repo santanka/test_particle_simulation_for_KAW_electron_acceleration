@@ -3,6 +3,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import os
 from multiprocessing import Pool
+import datetime
 
 wave_scalar_potential   = 600E0     #[V]
 initial_wavephase_list  = [0E0, 90E0, 180E0, 270E0]       #[deg]
@@ -16,7 +17,7 @@ switch_delta_Eperp_phi  = 0E0
 switch_delta_Bpara_list = [1E0, 0E0, 1E0]
 switch_delta_Bperp      = 0E0
 
-switch_wave_packet = 0E0
+switch_wave_packet = 1E0
 
 data_limit_under        = 0
 data_limit_upper        = 100000
@@ -44,8 +45,9 @@ mass_ion        = 1.672621898E-24   #[g]
 pressure_ion        = number_density_ion * temperature_ion * elementary_charge * 1E7    #cgs
 pressure_electron   = number_density_ion * temperature_electron * elementary_charge * 1E7   #cgs
 
-wavephaselist_number = len(gradient_parameter_list)#len(initial_wavephase_list)
+wavephaselist_number = len(initial_wavephase_list)
 wavekindlist_number = len(wavekind_list)
+gradientparameter_number = len(gradient_parameter_list)
 
 mpl.rcParams['text.usetex'] = True
 mpl.rcParams['font.family'] = 'serif'
@@ -100,17 +102,19 @@ def get_major_wave_component(position, component_1, component_2):
     return component_major
 
 
-def main(count_angle, count_kind, particle_file_number):
+def main(count_grad, count_angle, count_kind, particle_file_number):
     
     wavekind = wavekind_list[count_kind]
     switch_delta_Epara = switch_delta_Epara_list[count_kind]
     switch_delta_Bpara = switch_delta_Bpara_list[count_kind]
-    initial_wavephase = initial_wavephase_list[0]
-    gradient_parameter = gradient_parameter_list[count_angle]
+    initial_wavephase = initial_wavephase_list[count_angle]
+    gradient_parameter = gradient_parameter_list[count_grad]
 
-    dir_name = f'/mnt/j/KAW_simulation_data/single_test_particle/double_wave/results_particle_{str(int(wave_scalar_potential))}V' \
+    dir_name = f'/mnt/j/KAW_simulation_data/single_test_particle/double_wave_packet/results_particle_{str(int(wave_scalar_potential))}V' \
         + f'_gradient_{int(gradient_parameter)}_threshold_{int(wave_threshold)}_wavephase_{int(initial_wavephase)}_{wavekind}'
     file_name_particle  = f'{dir_name}/myrank000/particle_trajectory{particle_file_number}.dat'
+    if (check_file_exists(file_name_particle) == False):
+        return
     #file_name_wave      = f'{dir_name}/myrank000/potential_prof.dat'
 
     mkdir(f'{dir_name}/result_time_variation_particle')
@@ -119,43 +123,6 @@ def main(count_angle, count_kind, particle_file_number):
 
     data_particle   = np.genfromtxt(file_name_particle, unpack=True)
     data_particle   = data_particle[:, data_limit_under:data_limit_upper]
-    #data_wave       = np.genfromtxt(file_name_wave, unpack=True)
-
-    #data_wave
-    #dw_z_position         = data_wave[0, :]   #[/RE]
-#
-    #dw_wavenumber_para_1  = data_wave[1, :]   #[rad/m]
-    #dw_wavenumber_perp_1  = data_wave[2, :]   #[rad/m]
-    #dw_wave_frequency_1   = data_wave[3, :]   #[rad/s]
-    #dw_wave_phasespeed_1  = data_wave[4, :]   #[m/s]
-    #dw_wave_potential_1   = data_wave[5, :]   #[V]
-    #dw_wave_Epara_1       = data_wave[6, :]   #[V/m]
-    #dw_wave_Eperpperp_1   = data_wave[7, :]   #[V/m]
-    #dw_wave_Eperpphi_1    = data_wave[8, :]   #[V/m]
-    #dw_wave_Bpara_1       = data_wave[9, :]   #[T]
-    #dw_wave_Bperp_1       = data_wave[10, :]  #[T]
-    #dw_wave_phase_1       = data_wave[11, :]  #[rad]
-#
-    #dw_wavenumber_para_2  = data_wave[12, :]   #[rad/m]
-    #dw_wavenumber_perp_2  = data_wave[13, :]   #[rad/m]
-    #dw_wave_frequency_2   = data_wave[14, :]   #[rad/s]
-    #dw_wave_phasespeed_2  = data_wave[15, :]   #[m/s]
-    #dw_wave_potential_2   = data_wave[16, :]   #[V]
-    #dw_wave_Epara_2       = data_wave[17, :]   #[V/m]
-    #dw_wave_Eperpperp_2   = data_wave[18, :]   #[V/m]
-    #dw_wave_Eperpphi_2    = data_wave[19, :]   #[V/m]
-    #dw_wave_Bpara_2       = data_wave[20, :]   #[T]
-    #dw_wave_Bperp_2       = data_wave[21, :]   #[T]
-    #dw_wave_phase_2       = data_wave[22, :]   #[rad]
-#
-    #dw_alfven_speed           = data_wave[23, :]  #[m s-1]
-    #dw_ion_Larmor_radius      = data_wave[24, :]  #[m]
-    #dw_beta_ion               = data_wave[25, :]  #[]
-    #dw_magnetic_flux_density  = data_wave[26, :]  #[T]
-    #dw_temperature_ion        = data_wave[27, :]  #[eV]
-    #dw_temperature_electron   = data_wave[28, :]  #[eV]
-    #dw_number_density         = data_wave[29, :]  #[m-3]
-
 
     #data_particle
     dp_time             = data_particle[1, :]   #[s]
@@ -211,9 +178,9 @@ def main(count_angle, count_kind, particle_file_number):
         dh_dz = np.zeros(array_size)
         if (switch_wave_packet == 1E0):
             for count_i in range(array_size):
-                if (wave_phase[count_i] >= initial_wavephase-8.*np.pi and wave_phase[count_i] <= initial_wavephase):
-                    h_function[count_i] = 5E-1 * (1E0 - np.cos(1E0/4E0 * (wave_phase[count_i] - initial_wavephase)))
-                    dh_dz[count_i] = kpara[count_i] / 8E0 * np.sin((wave_phase[count_i] - initial_wavephase) / 4E0)
+                if (wave_phase[count_i] >= initial_wavephase*deg2rad-8.*np.pi and wave_phase[count_i] <= initial_wavephase*deg2rad):
+                    h_function[count_i] = 5E-1 * (1E0 - np.cos(1E0/4E0 * (wave_phase[count_i] - initial_wavephase*deg2rad)))
+                    dh_dz[count_i] = kpara[count_i] / 8E0 * np.sin((wave_phase[count_i] - initial_wavephase*deg2rad) / 4E0)
                 else:
                     h_function[count_i] = 0E0
                     dh_dz[count_i] == 0E0
@@ -355,12 +322,12 @@ def main(count_angle, count_kind, particle_file_number):
 
 
 def main_loop(args):
-    count_angle, count_kind, count_i = args
+    count_grad, count_angle, count_kind, count_i = args
     count_file = int(np.floor(count_i/initial_particle_number_divide))
     particle_file_number = f'{str(count_file).zfill(2)}-{str(count_i+1).zfill(3)}'
-    print(r'angle: ' + str(count_angle) + r', kind: ' + str(count_kind) + r', file number: ' + str(particle_file_number))
-    main(count_angle, count_kind=count_kind, particle_file_number=particle_file_number)
-    return
+    now = str(datetime.datetime.now())
+    print(r'analysis time: gradient: ' + str(count_grad) + r', phase: ' + str(count_angle) + r', kind: ' + str(count_kind) + r', file number: ' + str(particle_file_number) + r'   ' + now)
+    main(count_grad=count_grad, count_angle=count_angle, count_kind=count_kind, particle_file_number=particle_file_number)
 
 #main_loop([0, 0, 101])
 
@@ -372,14 +339,14 @@ if __name__ == '__main__':
     # 非同期処理の指定
     with Pool(processes=num_processes) as pool:
         results = []
-        for count_angle in range(wavephaselist_number):
-            for count_kind in range(wavekindlist_number):
-                for count_i in range(initial_particle_number):
-                    result = pool.apply_async(main_loop, [(count_angle, count_kind, count_i)])
-                    results.append(result)
+        for count_grad in range(gradientparameter_number):
+            for count_angle in range(wavephaselist_number):
+                for count_kind in range(wavekindlist_number):
+                    for count_i in range(initial_particle_number):
+                        result = pool.apply_async(main_loop, [(count_grad, count_angle, count_kind, count_i)])
+                        results.append(result)
         # 全ての非同期処理の終了を待機
         for result in results:
             result.get()
-
-    print(r'finish')
-    quit()
+        print(r'finish')
+        quit()
