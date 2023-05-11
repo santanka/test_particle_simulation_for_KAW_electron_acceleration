@@ -6,6 +6,7 @@ program distribution_calculater
    use lshell_setting
 
    implicit none
+   !3h30mかかる
 
    !--------------------------------------
    !  constants_in_the_simulation
@@ -19,7 +20,7 @@ program distribution_calculater
    double precision, parameter :: pitch_angle_min           = 0d0      ![degree]
    double precision, parameter :: distribution_function_max = 1d1    ![c^2]
    double precision, parameter :: distribution_function_min = 0d0    ![c^2]
-   integer, parameter          :: particle_total_number     = 20000000
+   integer, parameter          :: particle_total_number     = 1000000
    double precision, parameter :: d_pitch_angle             = 1d0 ![degree]
    double precision, parameter :: d_energy                  = 5d1 ![eV]
    integer, parameter          :: phase_space_number        = 1000
@@ -63,10 +64,10 @@ program distribution_calculater
    ! for count
    !-------------------------------------
 
-   integer :: count_alpha_energy(int(pitch_angle_min / d_pitch_angle):int(pitch_angle_max / d_pitch_angle) - 1, &
-      & int(energy_min / d_energy):int(energy_max / d_energy) - 1)
-   integer :: weight_count_alpha_energy(int(pitch_angle_min / d_pitch_angle):int(pitch_angle_max / d_pitch_angle) - 1, &
-      & int(energy_min / d_energy):int(energy_max / d_energy) - 1)
+   integer :: count_alpha_energy(nint(pitch_angle_min / d_pitch_angle):nint(pitch_angle_max / d_pitch_angle) - 1, &
+      & nint(energy_min / d_energy):nint(energy_max / d_energy) - 1)
+   integer :: weight_count_alpha_energy(nint(pitch_angle_min / d_pitch_angle):nint(pitch_angle_max / d_pitch_angle) - 1, &
+      & nint(energy_min / d_energy):nint(energy_max / d_energy) - 1)
    integer :: count_phase_space(0 : phase_space_number - 1, 0 : phase_space_number - 1)
    INTEGER :: total_alpha_energy
    integer :: particle_num_for_plot_a_E
@@ -178,8 +179,8 @@ program distribution_calculater
          
          count_number = count_number + 1
 
-         do count_a = int(pitch_angle_min / d_pitch_angle), int(pitch_angle_max / d_pitch_angle) - 1
-            do count_E = int(energy_min / d_energy), int(energy_max / d_energy) - 1
+         do count_a = nint(pitch_angle_min / d_pitch_angle), nint(pitch_angle_max / d_pitch_angle) - 1
+            do count_E = nint(energy_min / d_energy), nint(energy_max / d_energy) - 1
                pitch_angle_floor = dble(count_a) * d_pitch_angle
                pitch_angle_top = dble(count_a + 1) * d_pitch_angle
                energy_floor = dble(count_E) * d_energy
@@ -215,10 +216,10 @@ program distribution_calculater
       end if
    end do
 
-   do count_a = int(pitch_angle_min / d_pitch_angle), int(pitch_angle_max / d_pitch_angle) - 1
+   do count_a = nint(pitch_angle_min / d_pitch_angle), nint(pitch_angle_max / d_pitch_angle) - 1
       variable_a = dble(count_a) * d_pitch_angle
 
-      do count_E = int(energy_min / d_energy), int(energy_max / d_energy) - 1
+      do count_E = nint(energy_min / d_energy), nint(energy_max / d_energy) - 1
          variable_E = dble(count_E) * d_energy
 
          call energy_to_v(variable_E + d_energy/2d0, gamma, variable_v)
@@ -251,9 +252,9 @@ program distribution_calculater
    end do   !count_vpara
    close(12)
 
-   do count_a = int(pitch_angle_min / d_pitch_angle), int(pitch_angle_max / d_pitch_angle) - 1
+   do count_a = nint(pitch_angle_min / d_pitch_angle), nint(pitch_angle_max / d_pitch_angle) - 1
       variable_a = dble(count_a) * d_pitch_angle
-      do count_E = int(energy_min / d_energy), int(energy_max / d_energy) - 1
+      do count_E = nint(energy_min / d_energy), nint(energy_max / d_energy) - 1
          variable_E = dble(count_E) * d_energy
          energy = variable_E + d_energy / 2d0
          gamma = energy / m_e + 1d0
@@ -277,12 +278,12 @@ program distribution_calculater
    particle_num = 0
    tau_b        = 0
    
-   do count_E = int(energy_min / d_energy), int(energy_max / d_energy) - 1
+   do count_a = 1, 89  !loss cone ~ 1.5 degrees in L=9
 
       count_number = 0
-
-      count_a = myrank  !loss cone ~ 1.5 degrees in L=9
       variable_a = dble(count_a) * d_pitch_angle
+
+      count_E = myrank
 
       variable_E = dble(count_E) * d_energy
       !print *, 'check point 0', count_a, count_E, weight_count_alpha_energy(count_a, count_E), myrank
@@ -321,8 +322,9 @@ program distribution_calculater
             z_particle = 0d0
 
             print *, "check point 4", count_a, count_E, particle_num, myrank
-
-            do count_tau = 1, int(tau_b / delta_t)
+            
+            do count_tau = 1, 1000000
+               
                variable_time = delta_t * dble(count_tau)
 
                if ( variable_time <= tau_b ) then
@@ -442,7 +444,7 @@ program distribution_calculater
       end if
             
          
-      if (mod(count_E, 1) == 0 .and. count_number > 0) then
+      if (mod(count_a, 1) == 0 .and. count_number > 0) then
          write(*,*) 'pitch_angle', count_a, variable_a, 'energy', myrank, variable_E, count_number, particle_num, &
             & dble(weight_count_alpha_energy(count_a, count_E)), tau_b, delta_t, tau_b/delta_t
       end if

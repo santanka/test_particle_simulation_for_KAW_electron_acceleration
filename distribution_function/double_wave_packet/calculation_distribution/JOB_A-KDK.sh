@@ -1,8 +1,8 @@
 #!/bin/bash
 #============ QSUB Options ============
 #SBATCH -p gr20001b
-#SBATCH -t 96:00:00
-#SBATCH --rsc p=89:t=2:c=1
+#SBATCH -t 10:00:00
+#SBATCH --rsc p=952:t=2:c=1
 #--- p : # of processes
 #--- t : # of threads
 #--- c : # of cores (= t)
