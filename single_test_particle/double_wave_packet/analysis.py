@@ -8,23 +8,25 @@ initial_wavephase       = 0E0       #[deg]
 gradient_parameter      = 2E0       #[]
 wave_threshold          = 5E0       #[deg]
 
-wavekind                = r'EparaBpara'
+wavekind                = r'Epara'
 switch_delta_Epara      = 1E0
 switch_delta_Eperp_perp = 0E0
 switch_delta_Eperp_phi  = 0E0
-switch_delta_Bpara      = 1E0
+switch_delta_Bpara      = 0E0
 switch_delta_Bperp      = 0E0
 
 switch_wave_packet = 1E0
 
-particle_file_number    = r'20-101'
+particle_file_number    = r'20-102'
 data_limit_under        = 0
-data_limit_upper        = 200000
+data_limit_upper        =110000
 
-channel = 11
+channel = 18
 #1:trajectory, 2:energy & equatorial pitch angle, 3:delta_Epara (t=0), 4:delta_Eperpperp (t=8pi/wave_freq), 5:delta_Eperpphi (t=8pi/wave_freq)
 #6:delta_Bpara (t=8pi/wave_freq), 7:delta_Bperp (t=8pi/wave_freq), 8:wave frequency, 9:wavelength, 10:wavephase variation on particle
-#11:wavephase on particle vs. wave phase speed, 12:wave parallel components' forces, 13:particle velocity
+#11:wavephase on particle vs. wave phase speed, 12:wave parallel components' forces, 13:particle velocity, 14:plasma beta on particle
+#15:energy (colored by time), 16:wavephase on particle vs. wave phase speed (colored by time), 17:wave parallel components' forces (simple 3 kinds of forces)
+#18:wave parallel components' forces (simple 3 kinds of forces) & pitch angle & energy
 
 rad2deg = 180E0 / np.pi
 deg2rad = np.pi / 180E0
@@ -400,7 +402,7 @@ if (channel == 12):
     ax.grid(which="both", alpha=0.3)
     ax.legend()
 
-    fig.savefig(f'{dir_name}/result_parallel_force/particle_trajectory{particle_file_number}.png')
+    #fig.savefig(f'{dir_name}/result_parallel_force/particle_trajectory{particle_file_number}.png')
 
 if (channel == 13):
     fig = plt.figure(figsize=(24, 12), dpi=100, tight_layout=True)
@@ -415,4 +417,281 @@ if (channel == 13):
     ax2.grid(which='both', alpha=0.3)
     fig.savefig(f'{dir_name}/result_particle_velocity/particle_trajectory{particle_file_number}.png')
 
-plt.show()
+if (channel == 14):
+    dp_mlat_rad = z_position_m_to_mlat_rad(dp_z_position)
+    dp_b0 = B0_eq / np.cos(dp_mlat_rad)**6E0 * np.sqrt(1E0 + 3E0 * np.sin(dp_mlat_rad)**2E0) * 1E4     #[G]
+    dp_beta_ion = 8E0 * np.pi * pressure_ion / dp_b0**2E0
+
+    fig = plt.figure(figsize=(14, 14), dpi=100, tight_layout=True)
+    ax = fig.add_subplot(111, xlabel=r'time [s]', ylabel=r'ion plasma $\beta$', yscale='log')
+    ax.plot(dp_time, dp_beta_ion)
+    ax.minorticks_on()
+    ax.grid(which="both", alpha=0.3)
+    mkdir(f'{dir_name}/result_plasma_beta_ion')
+    fig.savefig(f'{dir_name}/result_plasma_beta_ion/particle_trajectory{particle_file_number}.png')
+
+if (channel == 15):
+    fig = plt.figure(figsize=(14, 14), dpi=100, tight_layout=True)
+    ax = fig.add_subplot(111, xlabel=r'time [s]', ylabel=r'energy [eV]')
+    mappable = ax.scatter(dp_time, dp_energy, c=dp_time, cmap='turbo', marker='.', lw=0)
+    fig.colorbar(mappable=mappable, ax=ax, label=r'time [s]')
+    ax.minorticks_on()
+    ax.grid(which='both', alpha=0.3)
+    ax.set_axisbelow(True)
+
+    mkdir(f'{dir_name}/result_energy_color')
+    fig.savefig(f'{dir_name}/result_energy_color/particle_trajectory{particle_file_number}.png')
+
+if (channel == 16):
+    dp_mlat_rad = z_position_m_to_mlat_rad(dp_z_position)
+    b0 = B0_eq / np.cos(dp_mlat_rad)**6E0 * np.sqrt(1E0 + 3E0 * np.sin(dp_mlat_rad)**2E0) * 1E4     #[G]
+    dp_kpara = np.sqrt(2E0 * np.pi * number_density_ion * mass_ion * pressure_ion) / b0**2E0 * np.sqrt(4E0 * np.pi + b0**2E0 / (pressure_ion + pressure_electron)) * np.sign(dp_mlat_rad)   #[rad/cm]
+    dp_wavefreq = 2E0 * np.pi / 2E0 #[rad/s]
+    dp_phasespeed = dp_wavefreq / dp_kpara / 1E2    #[m s-1]
+    
+    dp_theta = dp_v_para / dp_phasespeed - 1E0
+
+    dp_wavephase_major = get_major_wave_component(dp_z_position, dp_wavephase_1, dp_wavephase_2)
+
+    fig = plt.figure(figsize=(14, 14), dpi=100, tight_layout=True)
+    ax = fig.add_subplot(111, xlabel=r'wave phase $\psi$ [$\times \pi$ rad]', ylabel=r'$\frac{v_{\parallel}}{V_{R \parallel}}-1$')
+    mappable = ax.scatter(dp_wavephase_major / np.pi, dp_theta, c=dp_time, cmap='turbo', marker='.', lw=0)
+    fig.colorbar(mappable=mappable, ax=ax, label=r'time [s]')
+    ax.scatter(dp_wavephase_major[0], dp_theta[0], marker='o', color='r', label='start', zorder=3, s=200)
+    ax.scatter(dp_wavephase_major[-1], dp_theta[-1], marker='D', color='r', label='start', zorder=3, s=200)
+    ax.set_xlim((initial_wavephase*deg2rad-8*np.pi) / np.pi -1, (initial_wavephase*deg2rad) / np.pi +1)
+    ax.minorticks_on()
+    ax.grid(which="both", alpha=0.3)
+    ax.set_axisbelow(True)
+
+    mkdir(f'{dir_name}/result_wavephase_phasespeed_color')
+    fig.savefig(f'{dir_name}/result_wavephase_phasespeed_color/particle_trajectory{particle_file_number}.png')
+
+if (channel == 17):
+    mkdir(f'{dir_name}/result_parallel_force_simple')
+    
+    array_size = len(dp_z_position)
+    dp_mlat_rad = z_position_m_to_mlat_rad(dp_z_position)
+
+    dp_B0 = B0_eq / np.cos(dp_mlat_rad)**6E0 * np.sqrt(1E0 + 3E0 * np.sin(dp_mlat_rad)**2E0) * 1E4     #[G]
+    dp_kpara_1 = + np.sqrt(2E0 * np.pi * number_density_ion * mass_ion * pressure_ion) / dp_B0**2E0 * np.sqrt(4E0 * np.pi + dp_B0**2E0 / (pressure_ion + pressure_electron))    #[rad/cm]
+    dp_kpara_2 = - np.sqrt(2E0 * np.pi * number_density_ion * mass_ion * pressure_ion) / dp_B0**2E0 * np.sqrt(4E0 * np.pi + dp_B0**2E0 / (pressure_ion + pressure_electron))    #[rad/cm]
+    
+    ion_Larmor_radius = (speed_of_light*1E2) * np.sqrt(2E0*mass_ion*pressure_ion/number_density_ion) / (elementary_charge/1E1*speed_of_light*1E2) / dp_B0   #[cm]
+
+    dp_kperp_1 = 2E0 * np.pi / ion_Larmor_radius * np.ones(array_size) #[rad/cm]
+    dp_kperp_2 = 2E0 * np.pi / ion_Larmor_radius * np.ones(array_size) #[rad/cm]
+
+    dp_dB0_dz = 3E0 * np.sin(dp_mlat_rad) * (5E0 * np.sin(dp_mlat_rad)**2E0 + 3E0) / np.cos(dp_mlat_rad)**8E0 / (3E0 * np.sin(dp_mlat_rad)**2E0 + 1E0) / (r_eq*1E2) * (B0_eq*1E4)   #[G/cm]
+    Alpha = 4E0 * np.pi * (1E0 + pressure_electron / pressure_ion) * (elementary_charge/1E1*speed_of_light*1E2) * number_density_ion * (wave_scalar_potential*1E8/(speed_of_light*1E2))
+
+    g_function_1 = 5E-1 * (np.tanh(+ gradient_parameter * (dp_mlat_rad*rad2deg - wave_threshold/2E0)) + 1E0)
+    g_function_2 = 5E-1 * (np.tanh(- gradient_parameter * (dp_mlat_rad*rad2deg + wave_threshold/2E0)) + 1E0)
+
+    dg_dz_1 = + 90E0 * gradient_parameter / np.pi / np.cosh(+ gradient_parameter * (dp_mlat_rad*rad2deg - wave_threshold/2E0))**2E0 / (r_eq*1E2) / np.cos(dp_mlat_rad) / np.sqrt(1E0 + 3E0 * np.sin(dp_mlat_rad)**2E0)
+    dg_dz_2 = - 90E0 * gradient_parameter / np.pi / np.cosh(- gradient_parameter * (dp_mlat_rad*rad2deg + wave_threshold/2E0))**2E0 / (r_eq*1E2) / np.cos(dp_mlat_rad) / np.sqrt(1E0 + 3E0 * np.sin(dp_mlat_rad)**2E0)
+
+    h_function_1, dh_dz_1 = make_h_function(array_size, dp_wavephase_1, dp_kpara_1)
+    h_function_2, dh_dz_2 = make_h_function(array_size, dp_wavephase_2, dp_kpara_2)
+
+    dp_deltaBpara_1 = Alpha * g_function_1 * h_function_1 / dp_B0 * np.cos(dp_wavephase_1) * switch_delta_Bpara
+    dp_deltaBpara_2 = Alpha * g_function_2 * h_function_2 / dp_B0 * np.cos(dp_wavephase_2) * switch_delta_Bpara
+    dp_deltaBpara_sum = dp_deltaBpara_1 + dp_deltaBpara_2
+
+    dp_deltaEpara_1 = (2E0 + pressure_electron / pressure_ion) * dp_kpara_1 * (wave_scalar_potential*1E8/(speed_of_light*1E2)) * g_function_1 * h_function_1 * np.sin(dp_wavephase_1) * switch_delta_Epara
+    dp_deltaEpara_2 = (2E0 + pressure_electron / pressure_ion) * dp_kpara_2 * (wave_scalar_potential*1E8/(speed_of_light*1E2)) * g_function_2 * h_function_2 * np.sin(dp_wavephase_2) * switch_delta_Epara
+    dp_deltaEpara_sum = dp_deltaEpara_1 + dp_deltaEpara_2
+
+    dp_Larmor_radius = mass_electron * (dp_u_perp*1E2) * (speed_of_light*1E2) / (elementary_charge/1E1*speed_of_light*1E2) / (dp_B0 + dp_deltaBpara_sum)   #[cm]
+
+    def make_Delta(kperp):
+        Delta_real = np.zeros(array_size)
+        Delta_imag = np.zeros(array_size)
+        for count_i in range(array_size):
+            if (kperp[count_i] * dp_Larmor_radius[count_i] * np.sin(dp_u_phase[count_i]) != 0E0):
+                Delta_real[count_i] = (1E0 - np.cos(kperp[count_i] * dp_Larmor_radius[count_i] * np.sin(dp_u_phase[count_i]))) / (kperp[count_i] * dp_Larmor_radius[count_i] * np.sin(dp_u_phase[count_i]))**2E0
+                Delta_imag[count_i] = (- kperp[count_i] * dp_Larmor_radius[count_i] * np.sin(dp_u_phase[count_i]) + np.sin(kperp[count_i] * dp_Larmor_radius[count_i] * np.sin(dp_u_phase[count_i]))) \
+                    / (kperp[count_i] * dp_Larmor_radius[count_i] * np.sin(dp_u_phase[count_i]))**2E0
+            elif (kperp[count_i] * dp_Larmor_radius[count_i] * np.sin(dp_u_phase[count_i]) == 0E0):
+                Delta_real[count_i] = 5E-1
+                Delta_imag[count_i] = 0E0
+        return Delta_real, Delta_imag
+    
+    dp_Delta_real_1, dp_Delta_imag_1 = make_Delta(dp_kperp_1)
+    dp_Delta_real_2, dp_Delta_imag_2 = make_Delta(dp_kperp_2)
+
+    B0_function_1 = 2E0 * Alpha * (- 1E0 / dp_B0**2E0 * dp_dB0_dz * g_function_1 * h_function_1) * (dp_Delta_real_1 * np.cos(dp_wavephase_1) - dp_Delta_imag_1 * np.sin(dp_wavephase_1)) * switch_delta_Bpara
+    B0_function_2 = 2E0 * Alpha * (- 1E0 / dp_B0**2E0 * dp_dB0_dz * g_function_2 * h_function_2) * (dp_Delta_real_2 * np.cos(dp_wavephase_2) - dp_Delta_imag_2 * np.sin(dp_wavephase_2)) * switch_delta_Bpara
+    B0_function_sum = B0_function_1 + B0_function_2
+
+    kpara_function_1 = 2E0 * Alpha * (- dp_kpara_1 * g_function_1 * h_function_1 / dp_B0) * (dp_Delta_real_1 * np.sin(dp_wavephase_1) - dp_Delta_imag_1 * np.cos(dp_wavephase_1)) * switch_delta_Bpara
+    kpara_function_2 = 2E0 * Alpha * (- dp_kpara_2 * g_function_2 * h_function_2 / dp_B0) * (dp_Delta_real_2 * np.sin(dp_wavephase_2) - dp_Delta_imag_2 * np.cos(dp_wavephase_2)) * switch_delta_Bpara
+    kpara_function_sum = kpara_function_1 + kpara_function_2
+
+    dg_dz_function_1 = 2E0 * Alpha * (dg_dz_1 / dp_B0 * h_function_1) * (dp_Delta_real_1 * np.cos(dp_wavephase_1) - dp_Delta_imag_1 * np.sin(dp_wavephase_1)) * switch_delta_Bpara
+    dg_dz_function_2 = 2E0 * Alpha * (dg_dz_2 / dp_B0 * h_function_2) * (dp_Delta_real_2 * np.cos(dp_wavephase_2) - dp_Delta_imag_2 * np.sin(dp_wavephase_2)) * switch_delta_Bpara
+    dg_dz_function_sum = dg_dz_function_1 + dg_dz_function_2
+
+    dh_dz_function_1 = 2E0 * Alpha * (dh_dz_1 / dp_B0 * g_function_1) * (dp_Delta_real_1 * np.cos(dp_wavephase_1) - dp_Delta_imag_1 * np.sin(dp_wavephase_1)) * switch_delta_Bpara
+    dh_dz_function_2 = 2E0 * Alpha * (dh_dz_2 / dp_B0 * g_function_2) * (dp_Delta_real_2 * np.cos(dp_wavephase_2) - dp_Delta_imag_2 * np.sin(dp_wavephase_2)) * switch_delta_Bpara
+    dh_dz_function_sum = dh_dz_function_1 + dh_dz_function_2
+
+    Xi_function = B0_function_sum + kpara_function_sum + dg_dz_function_sum
+    
+    F_mirror_background = - mass_electron * (dp_u_perp*1E2)**2E0 / 2E0 / (dp_B0 + dp_deltaBpara_sum) / dp_gamma * dp_dB0_dz * 1E-5  #[N]
+    F_mirror_wave_B0    = - mass_electron * (dp_u_perp*1E2)**2E0 / 2E0 / (dp_B0 + dp_deltaBpara_sum) / dp_gamma * B0_function_sum * 1E-5  #[N]
+    F_mirror_wave_kpara = - mass_electron * (dp_u_perp*1E2)**2E0 / 2E0 / (dp_B0 + dp_deltaBpara_sum) / dp_gamma * kpara_function_sum * 1E-5  #[N]
+    F_mirror_wave_dg_dz = - mass_electron * (dp_u_perp*1E2)**2E0 / 2E0 / (dp_B0 + dp_deltaBpara_sum) / dp_gamma * dg_dz_function_sum * 1E-5  #[N]
+    F_mirror_wave_dh_dz = - mass_electron * (dp_u_perp*1E2)**2E0 / 2E0 / (dp_B0 + dp_deltaBpara_sum) / dp_gamma * dh_dz_function_sum * 1E-5  #[N]
+    F_electric          = - (elementary_charge/1E1*speed_of_light*1E2) * dp_deltaEpara_sum * 1E-5   #[N]
+
+    F_mirror_wave = F_mirror_wave_B0 + F_mirror_wave_kpara + F_mirror_wave_dg_dz + F_mirror_wave_dh_dz
+
+    fig = plt.figure(figsize=(24, 12), dpi=100, tight_layout=True)
+    ax = fig.add_subplot(111, xlabel=r'time [s]', ylabel=r'Force [N]')
+    ax.plot(dp_time, F_mirror_background, color='purple', alpha=0.5, label=r'$F_{B_0}$', lw=4)
+    if (switch_delta_Bpara == 1E0):
+        ax.plot(dp_time, F_mirror_wave, color='red', alpha=0.5, label=r'$F_{\delta B_{\parallel}}$', lw=4)
+    if (switch_delta_Epara == 1E0):
+        ax.plot(dp_time, F_electric, color='b', alpha=0.5, label=r'$F_{\delta E_{\parallel}}$', lw=4)
+    ax.minorticks_on()
+    ax.grid(which="both", alpha=0.3)
+    ax.legend()
+
+    fig.savefig(f'{dir_name}/result_parallel_force_simple/particle_trajectory{particle_file_number}.png')
+
+if (channel == 18):
+    mkdir(f'{dir_name}/result_parallel_force_simple_pitch_angle_energy')
+    
+    array_size = len(dp_z_position)
+    dp_mlat_rad = z_position_m_to_mlat_rad(dp_z_position)
+
+    dp_B0 = B0_eq / np.cos(dp_mlat_rad)**6E0 * np.sqrt(1E0 + 3E0 * np.sin(dp_mlat_rad)**2E0) * 1E4     #[G]
+    dp_kpara_1 = + np.sqrt(2E0 * np.pi * number_density_ion * mass_ion * pressure_ion) / dp_B0**2E0 * np.sqrt(4E0 * np.pi + dp_B0**2E0 / (pressure_ion + pressure_electron))    #[rad/cm]
+    dp_kpara_2 = - np.sqrt(2E0 * np.pi * number_density_ion * mass_ion * pressure_ion) / dp_B0**2E0 * np.sqrt(4E0 * np.pi + dp_B0**2E0 / (pressure_ion + pressure_electron))    #[rad/cm]
+    
+    ion_Larmor_radius = (speed_of_light*1E2) * np.sqrt(2E0*mass_ion*pressure_ion/number_density_ion) / (elementary_charge/1E1*speed_of_light*1E2) / dp_B0   #[cm]
+
+    dp_kperp_1 = 2E0 * np.pi / ion_Larmor_radius * np.ones(array_size) #[rad/cm]
+    dp_kperp_2 = 2E0 * np.pi / ion_Larmor_radius * np.ones(array_size) #[rad/cm]
+
+    dp_dB0_dz = 3E0 * np.sin(dp_mlat_rad) * (5E0 * np.sin(dp_mlat_rad)**2E0 + 3E0) / np.cos(dp_mlat_rad)**8E0 / (3E0 * np.sin(dp_mlat_rad)**2E0 + 1E0) / (r_eq*1E2) * (B0_eq*1E4)   #[G/cm]
+    Alpha = 4E0 * np.pi * (1E0 + pressure_electron / pressure_ion) * (elementary_charge/1E1*speed_of_light*1E2) * number_density_ion * (wave_scalar_potential*1E8/(speed_of_light*1E2))
+
+    g_function_1 = 5E-1 * (np.tanh(+ gradient_parameter * (dp_mlat_rad*rad2deg - wave_threshold/2E0)) + 1E0)
+    g_function_2 = 5E-1 * (np.tanh(- gradient_parameter * (dp_mlat_rad*rad2deg + wave_threshold/2E0)) + 1E0)
+
+    dg_dz_1 = + 90E0 * gradient_parameter / np.pi / np.cosh(+ gradient_parameter * (dp_mlat_rad*rad2deg - wave_threshold/2E0))**2E0 / (r_eq*1E2) / np.cos(dp_mlat_rad) / np.sqrt(1E0 + 3E0 * np.sin(dp_mlat_rad)**2E0)
+    dg_dz_2 = - 90E0 * gradient_parameter / np.pi / np.cosh(- gradient_parameter * (dp_mlat_rad*rad2deg + wave_threshold/2E0))**2E0 / (r_eq*1E2) / np.cos(dp_mlat_rad) / np.sqrt(1E0 + 3E0 * np.sin(dp_mlat_rad)**2E0)
+
+    h_function_1, dh_dz_1 = make_h_function(array_size, dp_wavephase_1, dp_kpara_1)
+    h_function_2, dh_dz_2 = make_h_function(array_size, dp_wavephase_2, dp_kpara_2)
+
+    dp_deltaBpara_1 = Alpha * g_function_1 * h_function_1 / dp_B0 * np.cos(dp_wavephase_1) * switch_delta_Bpara
+    dp_deltaBpara_2 = Alpha * g_function_2 * h_function_2 / dp_B0 * np.cos(dp_wavephase_2) * switch_delta_Bpara
+    dp_deltaBpara_sum = dp_deltaBpara_1 + dp_deltaBpara_2
+
+    dp_deltaEpara_1 = (2E0 + pressure_electron / pressure_ion) * dp_kpara_1 * (wave_scalar_potential*1E8/(speed_of_light*1E2)) * g_function_1 * h_function_1 * np.sin(dp_wavephase_1) * switch_delta_Epara
+    dp_deltaEpara_2 = (2E0 + pressure_electron / pressure_ion) * dp_kpara_2 * (wave_scalar_potential*1E8/(speed_of_light*1E2)) * g_function_2 * h_function_2 * np.sin(dp_wavephase_2) * switch_delta_Epara
+    dp_deltaEpara_sum = dp_deltaEpara_1 + dp_deltaEpara_2
+
+    dp_Larmor_radius = mass_electron * (dp_u_perp*1E2) * (speed_of_light*1E2) / (elementary_charge/1E1*speed_of_light*1E2) / (dp_B0 + dp_deltaBpara_sum)   #[cm]
+
+    def make_Delta(kperp):
+        Delta_real = np.zeros(array_size)
+        Delta_imag = np.zeros(array_size)
+        for count_i in range(array_size):
+            if (kperp[count_i] * dp_Larmor_radius[count_i] * np.sin(dp_u_phase[count_i]) != 0E0):
+                Delta_real[count_i] = (1E0 - np.cos(kperp[count_i] * dp_Larmor_radius[count_i] * np.sin(dp_u_phase[count_i]))) / (kperp[count_i] * dp_Larmor_radius[count_i] * np.sin(dp_u_phase[count_i]))**2E0
+                Delta_imag[count_i] = (- kperp[count_i] * dp_Larmor_radius[count_i] * np.sin(dp_u_phase[count_i]) + np.sin(kperp[count_i] * dp_Larmor_radius[count_i] * np.sin(dp_u_phase[count_i]))) \
+                    / (kperp[count_i] * dp_Larmor_radius[count_i] * np.sin(dp_u_phase[count_i]))**2E0
+            elif (kperp[count_i] * dp_Larmor_radius[count_i] * np.sin(dp_u_phase[count_i]) == 0E0):
+                Delta_real[count_i] = 5E-1
+                Delta_imag[count_i] = 0E0
+        return Delta_real, Delta_imag
+    
+    dp_Delta_real_1, dp_Delta_imag_1 = make_Delta(dp_kperp_1)
+    dp_Delta_real_2, dp_Delta_imag_2 = make_Delta(dp_kperp_2)
+
+    B0_function_1 = 2E0 * Alpha * (- 1E0 / dp_B0**2E0 * dp_dB0_dz * g_function_1 * h_function_1) * (dp_Delta_real_1 * np.cos(dp_wavephase_1) - dp_Delta_imag_1 * np.sin(dp_wavephase_1)) * switch_delta_Bpara
+    B0_function_2 = 2E0 * Alpha * (- 1E0 / dp_B0**2E0 * dp_dB0_dz * g_function_2 * h_function_2) * (dp_Delta_real_2 * np.cos(dp_wavephase_2) - dp_Delta_imag_2 * np.sin(dp_wavephase_2)) * switch_delta_Bpara
+    B0_function_sum = B0_function_1 + B0_function_2
+
+    kpara_function_1 = 2E0 * Alpha * (- dp_kpara_1 * g_function_1 * h_function_1 / dp_B0) * (dp_Delta_real_1 * np.sin(dp_wavephase_1) - dp_Delta_imag_1 * np.cos(dp_wavephase_1)) * switch_delta_Bpara
+    kpara_function_2 = 2E0 * Alpha * (- dp_kpara_2 * g_function_2 * h_function_2 / dp_B0) * (dp_Delta_real_2 * np.sin(dp_wavephase_2) - dp_Delta_imag_2 * np.cos(dp_wavephase_2)) * switch_delta_Bpara
+    kpara_function_sum = kpara_function_1 + kpara_function_2
+
+    dg_dz_function_1 = 2E0 * Alpha * (dg_dz_1 / dp_B0 * h_function_1) * (dp_Delta_real_1 * np.cos(dp_wavephase_1) - dp_Delta_imag_1 * np.sin(dp_wavephase_1)) * switch_delta_Bpara
+    dg_dz_function_2 = 2E0 * Alpha * (dg_dz_2 / dp_B0 * h_function_2) * (dp_Delta_real_2 * np.cos(dp_wavephase_2) - dp_Delta_imag_2 * np.sin(dp_wavephase_2)) * switch_delta_Bpara
+    dg_dz_function_sum = dg_dz_function_1 + dg_dz_function_2
+
+    dh_dz_function_1 = 2E0 * Alpha * (dh_dz_1 / dp_B0 * g_function_1) * (dp_Delta_real_1 * np.cos(dp_wavephase_1) - dp_Delta_imag_1 * np.sin(dp_wavephase_1)) * switch_delta_Bpara
+    dh_dz_function_2 = 2E0 * Alpha * (dh_dz_2 / dp_B0 * g_function_2) * (dp_Delta_real_2 * np.cos(dp_wavephase_2) - dp_Delta_imag_2 * np.sin(dp_wavephase_2)) * switch_delta_Bpara
+    dh_dz_function_sum = dh_dz_function_1 + dh_dz_function_2
+
+    Xi_function = B0_function_sum + kpara_function_sum + dg_dz_function_sum
+    
+    F_mirror_background = - mass_electron * (dp_u_perp*1E2)**2E0 / 2E0 / (dp_B0 + dp_deltaBpara_sum) / dp_gamma * dp_dB0_dz * 1E-5  #[N]
+    F_mirror_wave_B0    = - mass_electron * (dp_u_perp*1E2)**2E0 / 2E0 / (dp_B0 + dp_deltaBpara_sum) / dp_gamma * B0_function_sum * 1E-5  #[N]
+    F_mirror_wave_kpara = - mass_electron * (dp_u_perp*1E2)**2E0 / 2E0 / (dp_B0 + dp_deltaBpara_sum) / dp_gamma * kpara_function_sum * 1E-5  #[N]
+    F_mirror_wave_dg_dz = - mass_electron * (dp_u_perp*1E2)**2E0 / 2E0 / (dp_B0 + dp_deltaBpara_sum) / dp_gamma * dg_dz_function_sum * 1E-5  #[N]
+    F_mirror_wave_dh_dz = - mass_electron * (dp_u_perp*1E2)**2E0 / 2E0 / (dp_B0 + dp_deltaBpara_sum) / dp_gamma * dh_dz_function_sum * 1E-5  #[N]
+    F_electric          = - (elementary_charge/1E1*speed_of_light*1E2) * dp_deltaEpara_sum * 1E-5   #[N]
+
+    F_mirror_wave = F_mirror_wave_B0 + F_mirror_wave_kpara + F_mirror_wave_dg_dz + F_mirror_wave_dh_dz
+
+    dp_pitchangle = np.arctan(dp_v_perp/dp_v_para) * rad2deg    #[deg]
+    dp_pitchangle = np.mod(dp_pitchangle, 180.)
+
+    
+    plt.rcParams["font.size"] = 40
+
+    fig = plt.figure(figsize=(30, 20), dpi=100)
+    fig.suptitle(str(wavekind) + r', initial energy = ' + str(int(dp_energy[0])) + r' [eV], pitch angle = ' + str(int(np.round(dp_pitchangle_eq[0]))) + r' [deg], grad = ' + str(int(gradient_parameter)) + r', wavephase @ 0 deg = ' + str(int(initial_wavephase)) + r' [deg]')
+    
+    gs = fig.add_gridspec(6, 1)
+
+    ax1 = fig.add_subplot(gs[0, 0], xlabel=r'time [s]', ylabel=r'Energy [eV]')
+    ax1.plot(dp_time, dp_energy, lw=4)
+    ax1.xaxis.set_label_position('top')
+    ax1.xaxis.set_ticks_position('top')
+    ax1.minorticks_on()
+    ax1.grid(which="both", alpha=0.3)
+
+    ax2 = fig.add_subplot(gs[1, 0], sharex=ax1, ylabel=r'Pitch angle' '\n' r'[deg]')
+    ax2.hlines(90, dp_time[0], dp_time[-1], color='k', lw=4, linestyles='dashed', alpha=0.5)
+    ax2.plot(dp_time, dp_pitchangle, lw=4)
+    ax2.minorticks_on()
+    ax2.grid(which="both", alpha=0.3)
+    ax2.tick_params(labelbottom=False, bottom=True)
+
+    ax3 = fig.add_subplot(gs[2:4, 0], sharex=ax1, ylabel=r'Force [$\times 10^{-23}$ N]')
+    ax3.plot(dp_time, F_mirror_background*1E23, color='purple', alpha=0.5, label=r'$F_{B_0}$', lw=4)
+    if (switch_delta_Bpara == 1E0):
+        ax3.plot(dp_time, F_mirror_wave*1E23, color='red', alpha=0.5, label=r'$F_{\delta B_{\parallel}}$', lw=4)
+    if (switch_delta_Epara == 1E0):
+        ax3.plot(dp_time, F_electric*1E23, color='b', alpha=0.5, label=r'$F_{\delta E_{\parallel}}$', lw=4)
+    ax3.minorticks_on()
+    ax3.grid(which="both", alpha=0.3)
+    ax3.legend()
+
+    ax4 = fig.add_subplot(gs[4:, 0], xlabel=r'time [s]', ylabel=r'Force [$\times 10^{-23}$ N]')
+    if (switch_delta_Bpara == 1E0):
+        ax4.plot(dp_time, F_mirror_wave*1E23, color='red', alpha=0, lw=4)
+        ylim = ax4.get_ylim()
+    ax4.plot(dp_time, F_mirror_background*1E23, color='purple', alpha=0.2, label=r'$F_{B_0}$', lw=4)
+    if (switch_delta_Bpara == 1E0):
+        ax4.plot(dp_time, F_mirror_wave*1E23, color='red', alpha=0.5, label=r'$F_{\delta B_{\parallel}}$', lw=4)
+    if (switch_delta_Epara == 1E0):
+        ax4.plot(dp_time, F_electric*1E23, color='b', alpha=0.2, label=r'$F_{\delta E_{\parallel}}$', lw=4)
+    if (switch_delta_Bpara == 1E0):
+        ax4.set_ylim(ylim)
+    ax4.minorticks_on()
+    ax4.grid(which="both", alpha=0.3)
+    ax4.legend(loc='upper right')
+
+    fig.subplots_adjust(hspace=0)
+
+    fig.savefig(f'{dir_name}/result_parallel_force_simple_pitch_angle_energy/particle_trajectory{particle_file_number}.png')
+
+#plt.show()

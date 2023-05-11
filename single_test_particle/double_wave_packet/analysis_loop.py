@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import os
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 import datetime
 
 wave_scalar_potential   = 600E0     #[V]
@@ -26,9 +26,10 @@ data_limit_upper        = 200000
 initial_particle_number = 180
 initial_particle_number_divide = 5
 
-channel_list = [1, 2, 10, 11, 12, 13]
+#channel_list = [1, 2, 10, 11, 12, 13]
+channel_list = [1, 10, 11, 13, 14]
 #1:trajectory, 2:energy & equatorial pitch angle, 10:wavephase variation on particle
-#11:wavephase on particle vs. wave phase speed, 12:wave parallel components' forces, 13:particle velocity
+#11:wavephase on particle vs. wave phase speed, 12:wave parallel components' forces, 13:particle velocity, 14:plasma beta on particle
 
 rad2deg = 180E0 / np.pi
 deg2rad = np.pi / 180E0
@@ -46,6 +47,7 @@ temperature_electron = 1E2  #[eV]
 wavephaselist_number = len(initial_wavephase_list)
 wavekindlist_number = len(wavekind_list)
 gradientparameter_number = len(gradient_parameter_list)
+channellist_number = len(channel_list)
 
 #ファイルの確認
 def check_file_exists(filename):
@@ -96,6 +98,9 @@ def main(count_grad, count_angle, count_kind, particle_file_number, channel):
             return
     elif (channel == 13):
         if (check_file_exists(f'{dir_name}/result_particle_velocity/particle_trajectory{particle_file_number}.png') == True):
+            return
+    elif (channel == 14):
+        if (check_file_exists(f'{dir_name}/result_plasma_beta_ion/particle_trajectory{particle_file_number}.png') == True):
             return
 
     data_particle   = np.genfromtxt(file_name_particle, unpack=True)
@@ -206,7 +211,7 @@ def main(count_grad, count_angle, count_kind, particle_file_number, channel):
 
         mlat_deg = z_position_m_to_mlat_rad(dp_z_position) * rad2deg
         fig = plt.figure(figsize=(14, 14), dpi=100, tight_layout=True)
-        ax = fig.add_subplot(111, xlabel=r'MLAT [degree]', ylabel=r'$v_{\parallel}/c$')
+        ax = fig.add_subplot(111, xlabel=r'MLAT [degree]', ylabel=r'$v_{\parallel}$ [$\times$c]')
         mappable = ax.scatter(mlat_deg, dp_v_para/speed_of_light, c=dp_time, cmap='turbo', marker='.', lw=0)
         fig.colorbar(mappable=mappable, ax=ax, label=r'time [s]')
         ax.scatter(mlat_deg[0], dp_v_para[0]/speed_of_light, marker='o', color='r', label=r'start', zorder=3, s=200)
@@ -304,8 +309,8 @@ def main(count_grad, count_angle, count_kind, particle_file_number, channel):
         dp_wavephase_major = get_major_wave_component(dp_z_position, dp_wavephase_1, dp_wavephase_2)
         dp_wavephase_major = np.mod(dp_wavephase_major+np.pi, 2E0*np.pi) - np.pi
         fig = plt.figure(figsize=(14, 14), dpi=100, tight_layout=True)
-        ax = fig.add_subplot(111, xlabel=r'time [s]', ylabel=r'wave phase [rad]')
-        ax.plot(dp_time, dp_wavephase_major)
+        ax = fig.add_subplot(111, xlabel=r'time [s]', ylabel=r'wave phase [$\times \pi$ rad]')
+        ax.plot(dp_time, dp_wavephase_major / np.pi)
         ax.minorticks_on()
         ax.grid(which="both", alpha=0.3)
 
@@ -325,11 +330,11 @@ def main(count_grad, count_angle, count_kind, particle_file_number, channel):
         dp_wavephase_major = get_major_wave_component(dp_z_position, dp_wavephase_1, dp_wavephase_2)
 
         fig = plt.figure(figsize=(14, 14), dpi=100, tight_layout=True)
-        ax = fig.add_subplot(111, xlabel=r'wave phase $\psi$ [rad]', ylabel=r'$\frac{v_{\parallel}}{V_{R \parallel}}-1$')
-        ax.plot(dp_wavephase_major, dp_theta)
-        ax.scatter(dp_wavephase_major[0], dp_theta[0], marker='o', color='r', label='start', zorder=3, s=200)
-        ax.scatter(dp_wavephase_major[-1], dp_theta[-1], marker='D', color='r', label='start', zorder=3, s=200)
-        ax.set_xlim(initial_wavephase*deg2rad-8*np.pi, initial_wavephase*deg2rad)
+        ax = fig.add_subplot(111, xlabel=r'wave phase $\psi$ [$\times \pi$ rad]', ylabel=r'$\frac{v_{\parallel}}{V_{R \parallel}}-1$')
+        ax.plot(dp_wavephase_major / np.pi, dp_theta)
+        ax.scatter(dp_wavephase_major[0] / np.pi, dp_theta[0], marker='o', color='r', label='start', zorder=3, s=200)
+        ax.scatter(dp_wavephase_major[-1] / np.pi, dp_theta[-1], marker='D', color='r', label='start', zorder=3, s=200)
+        ax.set_xlim((initial_wavephase*deg2rad-8*np.pi) / np.pi -1, (initial_wavephase*deg2rad) / np.pi +1)
         ax.minorticks_on()
         ax.grid(which="both", alpha=0.3)
 
@@ -447,17 +452,30 @@ def main(count_grad, count_angle, count_kind, particle_file_number, channel):
         mkdir(f'{dir_name}/result_particle_velocity')
         
         fig = plt.figure(figsize=(24, 12), dpi=100, tight_layout=True)
-        ax1 = fig.add_subplot(121, xlabel=r'time [s]', ylabel=r'parallel velocity [/c]')
+        ax1 = fig.add_subplot(121, xlabel=r'time [s]', ylabel=r'parallel velocity [$\times$c]')
         ax1.plot(dp_time, dp_v_para/speed_of_light)
         ax1.minorticks_on()
         ax1.grid(which='both', alpha=0.3)
 
-        ax2 = fig.add_subplot(122, xlabel=r'time [s]', ylabel=r'perpendicular speed [/c]')
+        ax2 = fig.add_subplot(122, xlabel=r'time [s]', ylabel=r'perpendicular speed [$\times$c]')
         ax2.plot(dp_time, dp_v_perp/speed_of_light)
         ax2.minorticks_on()
         ax2.grid(which='both', alpha=0.3)
 
         fig.savefig(f'{dir_name}/result_particle_velocity/particle_trajectory{particle_file_number}.png')
+
+    if (channel == 14):
+        dp_mlat_rad = z_position_m_to_mlat_rad(dp_z_position)
+        dp_b0 = B0_eq / np.cos(dp_mlat_rad)**6E0 * np.sqrt(1E0 + 3E0 * np.sin(dp_mlat_rad)**2E0) * 1E4     #[G]
+        dp_beta_ion = 8E0 * np.pi * pressure_ion / dp_b0**2E0
+
+        fig = plt.figure(figsize=(14, 14), dpi=100, tight_layout=True)
+        ax = fig.add_subplot(111, xlabel=r'time [s]', ylabel=r'ion plasma $\beta$', yscale='log')
+        ax.plot(dp_time, dp_beta_ion)
+        ax.minorticks_on()
+        ax.grid(which="both", alpha=0.3)
+        mkdir(f'{dir_name}/result_plasma_beta_ion')
+        fig.savefig(f'{dir_name}/result_plasma_beta_ion/particle_trajectory{particle_file_number}.png')
 
     plt.close()
 
@@ -473,7 +491,10 @@ def main_loop(args):
 #並列処理
 if __name__ == '__main__':
     # プロセス数
-    num_processes = 16
+    num_processes = cpu_count() - 1
+    if (num_processes > 20):
+        num_processes = 20
+    print(r'num_processes = ' + str(num_processes))
 
     # 非同期処理の指定
     with Pool(processes=num_processes) as pool:
@@ -482,7 +503,7 @@ if __name__ == '__main__':
             for count_angle in range(wavephaselist_number):
                 for count_kind in range(wavekindlist_number):
                     for count_i in range(initial_particle_number):
-                        for channel_idx in range(6):
+                        for channel_idx in range(channellist_number):
                             result = pool.apply_async(main_loop, [(count_grad, count_angle, count_kind, count_i, channel_idx)])
                             results.append(result)
         # 全ての非同期処理の終了を待機

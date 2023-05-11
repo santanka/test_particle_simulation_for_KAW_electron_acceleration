@@ -25,7 +25,8 @@ b = 8E0 * np.pi * pressure_ion / B0_eq**2E0
 # 積分範囲の設定
 lambda_value = 1.0
 lower_limit = 0
-upper_limit = 69.17 / 180E0 * np.pi
+#upper_limit = 69.17 / 180E0 * np.pi
+upper_limit = 15 / 180 * np.pi
 
 # 積分する関数の定義
 def integrand(lambda_prime):

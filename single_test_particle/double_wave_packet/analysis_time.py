@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import os
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 import datetime
 
 wave_scalar_potential   = 600E0     #[V]
@@ -20,7 +20,7 @@ switch_delta_Bperp      = 0E0
 switch_wave_packet = 1E0
 
 data_limit_under        = 0
-data_limit_upper        = 100000
+data_limit_upper        = 200000
 
 initial_particle_number = 180
 initial_particle_number_divide = 5
@@ -258,14 +258,14 @@ def main(count_grad, count_angle, count_kind, particle_file_number):
     ax2.grid(which='both', alpha=0.3)
     ax2.tick_params(labelbottom=False, bottom=True)
 
-    ax3 = fig.add_subplot(gs[2, 0], ylabel=r'velocity [/c]', sharex=ax1)
+    ax3 = fig.add_subplot(gs[2, 0], ylabel=r'$v_{\parallel}$ [$\times$c]', sharex=ax1)
     ax3.set_title(r'(c)', x=-0.075, y=0.95)
     ax3.plot(dp_time, dp_v_para/speed_of_light)
     ax3.minorticks_on()
     ax3.grid(which='both', alpha=0.3)
     ax3.tick_params(labelbottom=False, bottom=True)
 
-    ax4 = fig.add_subplot(gs[3, 0], ylabel=r'velocity [/c]', sharex=ax1)
+    ax4 = fig.add_subplot(gs[3, 0], ylabel=r'$v_{\perp}$ [$\times$c]', sharex=ax1)
     ax4.set_title(r'(d)', x=-0.075, y=0.95)
     ax4.plot(dp_time, dp_v_perp/speed_of_light)
     ax4.minorticks_on()
@@ -293,9 +293,9 @@ def main(count_grad, count_angle, count_kind, particle_file_number):
     ax7.grid(which='both', alpha=0.3)
     ax7.tick_params(labelbottom=False, bottom=True)
 
-    ax8 = fig.add_subplot(gs[7, 0], ylabel=r'wave phase [rad]', sharex=ax1)
+    ax8 = fig.add_subplot(gs[7, 0], ylabel=r'wave phase [$\times \pi$ rad]', sharex=ax1)
     ax8.set_title(r'(h)', x=-0.075, y=0.95)
-    ax8.plot(dp_time, dp_wavephase_major)
+    ax8.plot(dp_time, dp_wavephase_major/np.pi)
     ax8.minorticks_on()
     ax8.grid(which='both', alpha=0.3)
     ax8.tick_params(labelbottom=False, bottom=True)
@@ -334,7 +334,10 @@ def main_loop(args):
 #並列処理
 if __name__ == '__main__':
     # プロセス数
-    num_processes = 16
+    num_processes = cpu_count()-1
+    if (num_processes > 20):
+        num_processes = 20
+    print(r'num_processes: ' + str(num_processes))
 
     # 非同期処理の指定
     with Pool(processes=num_processes) as pool:
