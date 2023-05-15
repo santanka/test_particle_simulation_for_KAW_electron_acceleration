@@ -25,7 +25,7 @@ switch_delta_Bperp_b      = 0E0
 
 switch_wave_packet = 1E0
 
-particle_file_number    = r'20-102'
+particle_file_number    = r'03-016'
 data_limit_under        = 0
 data_limit_upper        = 200000
 
