@@ -25,9 +25,9 @@ switch_delta_Bperp_b      = 0E0
 
 switch_wave_packet = 1E0
 
-particle_file_number    = r'03-016'
+particle_file_number    = r'20-102'
 data_limit_under        = 0
-data_limit_upper        = 200000
+data_limit_upper        = 110000
 
 channel = 3
 #1:trajectory, 2:energy, 3:wavephase on particle vs. wave phase speed
@@ -180,7 +180,7 @@ if (channel == 1):
     dp_mlat_deg_a = z_position_m_to_mlat_rad(dp_z_position_a) * rad2deg
     dp_mlat_deg_b = z_position_m_to_mlat_rad(dp_z_position_b) * rad2deg
 
-    fig = plt.figure(figsize=(14, 14), dpi=100, tight_layout=True)
+    fig = plt.figure(figsize=(8, 7), dpi=100, tight_layout=True)
     ax = fig.add_subplot(111, xlabel=r'MLAT [degree]', ylabel=r'$v_{\parallel}$ [c]')
     ax.plot(dp_mlat_deg_a, dp_v_para_a / speed_of_light, color='red', label=r'$\delta E_{\parallel}$ \& $\delta B_{\parallel}$')
     ax.plot(dp_mlat_deg_b, dp_v_para_b / speed_of_light, color='blue', label=r'only $\delta E_{\parallel}$')
@@ -201,7 +201,7 @@ if (channel == 1):
     ax.legend()
 
 if (channel == 2):
-    fig = plt.figure(figsize=(14, 14), dpi=100, tight_layout=True)
+    fig = plt.figure(figsize=(8, 7), dpi=100, tight_layout=True)
     ax = fig.add_subplot(111, xlabel=r'time [s]', ylabel=r'energy [eV]')
     ax.plot(dp_time_a, dp_energy_a, color='red', label=r'$\delta E_{\parallel}$ \& $\delta B_{\parallel}$')
     ax.plot(dp_time_b, dp_energy_b, color='blue', label=r'only $\delta E_{\parallel}$')
@@ -231,8 +231,8 @@ if (channel == 3):
     dp_wavephase_major_a = get_major_wave_component(dp_z_position_a, dp_wavephase_1_a, dp_wavephase_2_a)
     dp_wavephase_major_b = get_major_wave_component(dp_z_position_b, dp_wavephase_1_b, dp_wavephase_2_b)
 
-    fig = plt.figure(figsize=(14, 14), dpi=100, tight_layout=True)
-    ax = fig.add_subplot(111, xlabel=r'wave phase $\psi$ [$\times \pi$ rad]', ylabel=r'$\frac{v_{\parallel}}{V_{R \parallel}}-1$')
+    fig = plt.figure(figsize=(8, 7), dpi=100, tight_layout=True)
+    ax = fig.add_subplot(111, xlabel=r'wave phase $\psi$ [$\times \pi$ rad]', ylabel=r'$\frac{v_{\parallel}}{V_{\mathrm{ph} \parallel}}-1$')
     ax.plot(dp_wavephase_major_a / np.pi, dp_theta_a, color='red', label=r'$\delta E_{\parallel}$ \& $\delta B_{\parallel}$')
     ax.plot(dp_wavephase_major_b / np.pi, dp_theta_b, color='blue', label=r'only $\delta E_{\parallel}$')
     ax.set_xlim((initial_wavephase*deg2rad-8*np.pi) / np.pi -1, (initial_wavephase*deg2rad) / np.pi +1)

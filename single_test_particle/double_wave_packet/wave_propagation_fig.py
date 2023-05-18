@@ -47,7 +47,7 @@ mpl.rcParams['text.usetex'] = True
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.serif'] = ['Computer Modern Roman']
 mpl.rcParams['mathtext.fontset'] = 'cm'
-plt.rcParams["font.size"] = 25
+plt.rcParams["font.size"] = 35
 
 fig = plt.figure(figsize=(14, 14), dpi=100, tight_layout=True)
 ax = fig.add_subplot(111, xlabel=r'MLAT [deg]', ylabel=r'time [s]', xlim=(-40, 40), ylim=(0, 12))

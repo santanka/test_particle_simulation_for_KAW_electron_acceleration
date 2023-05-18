@@ -8,7 +8,7 @@ initial_wavephase       = 0E0       #[deg]
 gradient_parameter      = 2E0       #[]
 wave_threshold          = 5E0       #[deg]
 
-wavekind                = r'EparaBpara'
+wavekind                = r'Epara'
 switch_delta_Epara      = 1E0
 switch_delta_Eperp_perp = 0E0
 switch_delta_Eperp_phi  = 0E0
@@ -21,8 +21,8 @@ particle_file_number    = r'20-102'
 data_limit_under        = 0
 data_limit_upper        =110000
 
-channel = 11
-#1:trajectory, 2:energy & equatorial pitch angle, 3:delta_Epara (t=0), 4:delta_Eperpperp (t=8pi/wave_freq), 5:delta_Eperpphi (t=8pi/wave_freq)
+channel = 15
+#1:trajectory, 2:energy & equatorial pitch angle, 3:delta_Epara (t=8pi/wave_freq), 4:delta_Eperpperp (t=8pi/wave_freq), 5:delta_Eperpphi (t=8pi/wave_freq)
 #6:delta_Bpara (t=8pi/wave_freq), 7:delta_Bperp (t=8pi/wave_freq), 8:wave frequency, 9:wavelength, 10:wavephase variation on particle
 #11:wavephase on particle vs. wave phase speed, 12:wave parallel components' forces, 13:particle velocity, 14:plasma beta on particle
 #15:energy (colored by time), 16:wavephase on particle vs. wave phase speed (colored by time), 17:wave parallel components' forces (simple 3 kinds of forces)
@@ -121,7 +121,7 @@ mpl.rcParams['text.usetex'] = True
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.serif'] = ['Computer Modern Roman']
 mpl.rcParams['mathtext.fontset'] = 'cm'
-plt.rcParams["font.size"] = 25
+plt.rcParams["font.size"] = 35
 
 #ファイルの確認
 def check_file_exists(filename):
@@ -172,8 +172,7 @@ def get_major_wave_component(position, component_1, component_2):
 
 if (channel == 1):
     mlat_deg = z_position_m_to_mlat_rad(dp_z_position) * rad2deg
-    plt.rcParams["font.size"] = 30
-    fig = plt.figure(figsize=(14, 14), dpi=100, tight_layout=True)
+    fig = plt.figure(figsize=(10, 7), dpi=100, tight_layout=True)
     ax = fig.add_subplot(111, xlabel=r'MLAT [degree]', ylabel=r'$v_{\parallel}$ [$\times$c]')
     mappable = ax.scatter(mlat_deg, dp_v_para/speed_of_light, c=dp_time, cmap='turbo', marker='.', lw=0)
     fig.colorbar(mappable=mappable, ax=ax, label=r'time [s]')
@@ -193,7 +192,7 @@ if (channel == 1):
     ax.minorticks_on()
     ax.grid(which='both', alpha=0.3)
     ax.set_axisbelow(True)
-    ax.legend()
+    #ax.legend()
 
     #mkdir(f'{dir_name}/result_trajectory')
     #fig.savefig(f'{dir_name}/result_trajectory/particle_trajectory{particle_file_number}.png')
@@ -209,11 +208,11 @@ if (channel == 2):
     ax2.plot(dp_time, dp_pitchangle_eq)
     ax2.minorticks_on()
     ax2.grid(which='both', alpha=0.3)
-    fig.savefig(f'{dir_name}/result_energy_eqpitchangle/particle_trajectory{particle_file_number}.png')
+    #fig.savefig(f'{dir_name}/result_energy_eqpitchangle/particle_trajectory{particle_file_number}.png')
 
 def profile_plot_mlat(z_position_m, profile, profile_name):
     mlat_deg = z_position_m_to_mlat_rad(z_position_m) * rad2deg
-    fig = plt.figure(figsize=(14, 14), dpi=100, tight_layout=True)
+    fig = plt.figure(figsize=(7, 7), dpi=100, tight_layout=True)
     ax = fig.add_subplot(111, xlabel=r'MLAT [degree]', ylabel=f'{profile_name}')
     ax.plot(mlat_deg, profile)
     ax.minorticks_on()
@@ -433,7 +432,7 @@ if (channel == 14):
     fig.savefig(f'{dir_name}/result_plasma_beta_ion/particle_trajectory{particle_file_number}.png')
 
 if (channel == 15):
-    fig = plt.figure(figsize=(14, 14), dpi=100, tight_layout=True)
+    fig = plt.figure(figsize=(10, 10), dpi=100, tight_layout=True)
     ax = fig.add_subplot(111, xlabel=r'time [s]', ylabel=r'energy [eV]')
     mappable = ax.scatter(dp_time, dp_energy, c=dp_time, cmap='turbo', marker='.', lw=0)
     fig.colorbar(mappable=mappable, ax=ax, label=r'time [s]')
@@ -441,8 +440,8 @@ if (channel == 15):
     ax.grid(which='both', alpha=0.3)
     ax.set_axisbelow(True)
 
-    mkdir(f'{dir_name}/result_energy_color')
-    fig.savefig(f'{dir_name}/result_energy_color/particle_trajectory{particle_file_number}.png')
+    #mkdir(f'{dir_name}/result_energy_color')
+    #fig.savefig(f'{dir_name}/result_energy_color/particle_trajectory{particle_file_number}.png')
 
 if (channel == 16):
     dp_mlat_rad = z_position_m_to_mlat_rad(dp_z_position)
@@ -455,8 +454,8 @@ if (channel == 16):
 
     dp_wavephase_major = get_major_wave_component(dp_z_position, dp_wavephase_1, dp_wavephase_2)
 
-    fig = plt.figure(figsize=(14, 14), dpi=100, tight_layout=True)
-    ax = fig.add_subplot(111, xlabel=r'wave phase $\psi$ [$\times \pi$ rad]', ylabel=r'$\frac{v_{\parallel}}{V_{R \parallel}}-1$')
+    fig = plt.figure(figsize=(10, 7), dpi=100, tight_layout=True)
+    ax = fig.add_subplot(111, xlabel=r'wave phase $\psi$ [$\times \pi$ rad]', ylabel=r'$\frac{v_{\parallel}}{V_{\mathrm{ph} \parallel}}-1$')
     mappable = ax.scatter(dp_wavephase_major / np.pi, dp_theta, c=dp_time, cmap='turbo', marker='.', lw=0)
     fig.colorbar(mappable=mappable, ax=ax, label=r'time [s]')
     ax.scatter(dp_wavephase_major[0], dp_theta[0], marker='o', color='r', label='start', zorder=3, s=200)
