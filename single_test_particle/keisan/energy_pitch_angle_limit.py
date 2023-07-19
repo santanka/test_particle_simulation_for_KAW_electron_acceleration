@@ -41,11 +41,15 @@ plasma_beta_ion = 2E0 * magnetic_constant * number_density * ion_temperature * e
 # wave parameters
 kperp_rhoi = 2E0 * np.pi    #[rad]
 wave_phase_speed = Alfven_speed * kperp_rhoi * np.sqrt((ion_temperature + electron_temperature) / (plasma_beta_ion * (ion_temperature + electron_temperature) + 2E0 * ion_temperature))    #[m/s]
-wave_phase = 2E0 * np.pi * 0.5    #[rad/s]
+wave_phase = 2E0 * np.pi * 0.15    #[rad/s]
 kpara = wave_phase / wave_phase_speed    #[rad/m]
 wave_modified_potential = 1E-3 / kpara[0]  #[V]
 #wave_scalar_potential = 600E0   #[V]
 #wave_modified_potential = wave_scalar_potential * (2E0 + electron_temperature / ion_temperature)    #[V]
+print(wave_modified_potential)
+wave_scalar_potential = wave_modified_potential / (2E0 + electron_temperature / ion_temperature)    #[V]
+print(wave_scalar_potential)
+#quit()
 
 energy_wave_phase_speed = 5E-1 * electron_mass * wave_phase_speed**2E0  #[J]
 energy_wave_potential = elementary_charge * wave_modified_potential     #[J]
