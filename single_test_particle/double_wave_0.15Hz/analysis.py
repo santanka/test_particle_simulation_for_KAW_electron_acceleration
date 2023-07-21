@@ -20,11 +20,11 @@ switch_wave_packet = 0E0
 wave_frequency = 2E0 * np.pi * 0.15    #[rad/s]
 kperp_rhoi = 2E0 * np.pi
 
-particle_file_number    = r'20-102'
+particle_file_number    = r'33-170'
 data_limit_under        = 0
-data_limit_upper        =100000
+data_limit_upper        =200000
 
-channel = 24
+channel = 23
 #1:trajectory, 2:energy & equatorial pitch angle, 3:delta_Epara (t=8pi/wave_freq), 4:delta_Eperpperp (t=8pi/wave_freq), 5:delta_Eperpphi (t=8pi/wave_freq)
 #6:delta_Bpara (t=8pi/wave_freq), 7:delta_Bperp (t=8pi/wave_freq), 8:wave frequency, 9:wavelength, 10:wavephase variation on particle
 #11:wavephase on particle vs. wave phase speed, 12:wave parallel components' forces, 13:particle velocity, 14:plasma beta on particle

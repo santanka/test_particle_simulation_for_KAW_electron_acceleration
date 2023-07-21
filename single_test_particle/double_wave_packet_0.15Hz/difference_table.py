@@ -3,9 +3,9 @@ import pandas as pd
 from multiprocessing import Pool, cpu_count
 
 
-wave_scalar_potential = 600E0 # [V]
+wave_scalar_potential = 2000E0 # [V]
 initial_wave_phase = 0E0 # [deg]
-gradient_parameter = 1E0 # []
+gradient_parameter = 2E0 # []
 wave_threshold = 5E0 # [deg]
 
 wavekind_list = [r'EparaBpara', r'Epara']

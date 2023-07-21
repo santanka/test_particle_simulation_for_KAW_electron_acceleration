@@ -1069,7 +1069,8 @@ def main(count_grad, count_angle, count_kind, particle_file_number, channel):
             elif (switch_delta_Bpara == 1E0):
                 ax.set_ylabel(r'$\frac{\theta}{2\omega_{\mathrm{mtr}}}$')
             mappable = ax.scatter(dp_wavephase_mod/np.pi, dp_theta/2E0/dp_omega_tr, c=dp_time, cmap='turbo', marker='.', lw=0)
-            fig.colorbar(mappable=mappable, ax=ax, label=r'time [s]')
+            cbar = fig.colorbar(mappable=mappable, ax=ax, label=r'time [s]')
+            cbar.mappable.set_clim(dp_time[0], dp_time[-1])
             ax.set_xlim(-1, 1)
             ax.set_ylim(-3, 3)
             ax.minorticks_on()
@@ -1223,6 +1224,7 @@ def main(count_grad, count_angle, count_kind, particle_file_number, channel):
 
             ax2 = fig.add_subplot(212, ylabel=r'$(\omega_{\mathrm{mtr}} / \omega_{\mathrm{tr}})^{2} = S / S_{\mathrm{m}}$')
             ax2.plot(dp_time, dp_Gamma_tr, lw=4, color='blue', alpha=0.5)
+            ax2.set_ylim(0E0, 5E0)
             ax2.minorticks_on()
             ax2.grid(which="both", alpha=0.3)
 

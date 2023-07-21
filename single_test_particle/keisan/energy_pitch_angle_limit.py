@@ -54,6 +54,9 @@ wave_modified_potential = wave_scalar_potential * (2E0 + electron_temperature / 
 energy_wave_phase_speed = 5E-1 * electron_mass * wave_phase_speed**2E0  #[J]
 energy_wave_potential = elementary_charge * wave_modified_potential     #[J]
 
+# include δBpara
+energy_wave_potential = energy_wave_potential * 0.8E0
+
 delta  = 1E0 / kpara / b0 * db0_dz    #[rad^-1]
 epsilon = delta * (3E0 - 4E0 * ion_temperature / (plasma_beta_ion * (ion_temperature + electron_temperature) + 2E0 * ion_temperature))    #[rad^-1]
 
@@ -97,6 +100,7 @@ ylim = ax2.get_ylim()
 ax2.plot(mlat_deg, energy_wave_phase_speed / elementary_charge, color='r', linewidth='4', label=r'Wave Phase Speed')
 ax2.plot(mlat_deg, energy_wave_potential*np.ones(len(mlat_deg)) / elementary_charge, color='g', linewidth='4', label=r'Wave Potential')
 ax2.set_ylim(ylim)
+ax2.set_ylim([0, 5000])
 ax2.minorticks_on()
 ax2.grid(which='both', alpha=0.3)
 ax2.legend(loc='upper right', fontsize=20)
