@@ -37,9 +37,12 @@ def integrand(lambda_prime):
 result = np.zeros(len(upper_limit))
 for i in range(len(upper_limit)):
     result[i], error = integrate.quad(integrand, lower_limit, upper_limit[i])
-result = result * r_eq*1E2 * np.sqrt(np.pi*mass_ion*number_density_ion) / B0_eq
 
-wave_frequency = 2*np.pi / 2
+wave_frequency = 2*np.pi * 0.15    #[rad/s]
+
+kperp_rhoi = 2E0 * np.pi    #[rad]
+
+result = result * r_eq*1E2 * np.sqrt(4*np.pi*mass_ion*number_density_ion) / B0_eq * wave_frequency / kperp_rhoi
 
 initial_wavephase = 0E0
 
@@ -50,9 +53,9 @@ mpl.rcParams['mathtext.fontset'] = 'cm'
 plt.rcParams["font.size"] = 35
 
 fig = plt.figure(figsize=(14, 14), dpi=100, tight_layout=True)
-ax = fig.add_subplot(111, xlabel=r'MLAT [deg]', ylabel=r'time [s]', xlim=(-40, 40), ylim=(0, 12))
+ax = fig.add_subplot(111, xlabel=r'MLAT [deg]', ylabel=r'time [s]', xlim=(-40, 40), ylim=(0, 40)) #
 
-ax.vlines(0, 0, 12, color='k', linestyle='--', linewidth=2)
+ax.vlines(0, 0, 40, color='k', linestyle='--', linewidth=2)
 
 color_list = ['b', 'm', 'g', 'r', 'c']
 

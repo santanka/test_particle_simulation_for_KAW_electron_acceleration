@@ -18,12 +18,12 @@ module constants_in_the_simulations
   double precision, parameter :: switch_BB_wave_para = 0d0
   double precision, parameter :: switch_BB_wave_perp = 0d0
 
-  double precision, parameter :: switch_wave_packet = 0E0
+  double precision, parameter :: switch_wave_packet = 1E0
   
   !-------------------------------------
   ! initial setting of simulation system
   !-------------------------------------
-  INTEGER, PARAMETER          :: n_time = 200000  ! !80000 (10.9932 [s])
+  INTEGER, PARAMETER          :: n_time = 420000  ! !80000 (10.9932 [s])
   INTEGER, PARAMETER          :: n_z = 3500 ! (n + 1) for dB_dz
   DOUBLE PRECISION, PARAMETER :: d_t = 1.0d0 / Omega0_eq
   DOUBLE PRECISION, PARAMETER :: d_z = 0.5d0 / Omega0_eq * c_normal
