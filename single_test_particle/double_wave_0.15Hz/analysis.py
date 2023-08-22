@@ -20,11 +20,11 @@ switch_wave_packet = 0E0
 wave_frequency = 2E0 * np.pi * 0.15    #[rad/s]
 kperp_rhoi = 2E0 * np.pi
 
-particle_file_number    = r'33-170'
+particle_file_number    = r'03-017'
 data_limit_under        = 0
 data_limit_upper        =200000
 
-channel = 23
+channel = 6
 #1:trajectory, 2:energy & equatorial pitch angle, 3:delta_Epara (t=8pi/wave_freq), 4:delta_Eperpperp (t=8pi/wave_freq), 5:delta_Eperpphi (t=8pi/wave_freq)
 #6:delta_Bpara (t=8pi/wave_freq), 7:delta_Bperp (t=8pi/wave_freq), 8:wave frequency, 9:wavelength, 10:wavephase variation on particle
 #11:wavephase on particle vs. wave phase speed, 12:wave parallel components' forces, 13:particle velocity, 14:plasma beta on particle
@@ -34,6 +34,7 @@ channel = 23
 #20:wave parallel components times particle parallel velocity (7 kinds) & pitch angle & energy & plasma beta & scalar potential
 #21:wave phase & wave trapping frequency & delta_m & stable/unstable point time variation (old)
 #22:psi-theta plot, 23:wave phase & wave trapping frequency & delta_m & stable/unstable point time variation, 24:delta_m & Gamma_tr
+#25:adiabatic invariant
 
 rad2deg = 180E0 / np.pi
 deg2rad = np.pi / 180E0
@@ -1382,7 +1383,7 @@ if (channel == 21 and switch_delta_Epara == 1E0):
 
     fig.savefig(f'{dir_name}/result_pendulum_theory_time_variation/particle_trajectory{particle_file_number}.png')
 
-if ((channel == 22 or channel == 23 or channel == 24) and switch_delta_Epara == 1E0):
+if ((channel == 22 or channel == 23 or channel == 24 or channel == 25) and switch_delta_Epara == 1E0):
 
     array_size = len(dp_z_position)
     dp_mlat_rad = z_position_m_to_mlat_rad(dp_z_position)
@@ -1614,7 +1615,27 @@ if ((channel == 22 or channel == 23 or channel == 24) and switch_delta_Epara == 
 
         fig.subplots_adjust()
 
+    if (channel == 25):
 
+        dp_cyclotron_freq_electron_0 = (elementary_charge/1E1*speed_of_light*1E2) * dp_B0 / mass_electron / (speed_of_light*1E2)   #[rad/s]
+        dp_d_mu_dt_normalized = (1E0 + dp_Phi_B / dp_B0**2E0 * np.cos(dp_wavephase))**(-2E0) * np.sin(dp_wavephase) * (- wave_frequency / dp_cyclotron_freq_electron_0 * dp_Phi_B / dp_B0**2E0 + 2E0 / dp_gamma * dp_v_para / speed_of_light * dp_kpara * dp_Phi / dp_B0 * (1E0 + dp_Phi_B / dp_B0**2E0 * np.cos(dp_wavephase)))    #[rad/s^2]
+        dp_d_mu_dt = dp_d_mu_dt_normalized * dp_mu * dp_cyclotron_freq_electron_0    #[erg/G/s]=[statC/cm^2/s]
+
+
+        fig = plt.figure(figsize=(20, 30), dpi=100)
+        fig.suptitle(str(wavekind) + r', initial energy = ' + str(int(dp_energy[0])) + r' [eV], pitch angle = ' + str(int(np.round(dp_pitchangle_eq[0]))) + r' [deg],' '\n' r'grad = ' + str(int(gradient_parameter)) + r', wavephase @ 0 deg = ' + str(int(initial_wavephase)) + r' [deg]')
+
+        ax1 = fig.add_subplot(211, xlabel=r'time [s]', ylabel=r'$\mu / \mu (t=0)$')
+        ax1.plot(dp_time, dp_mu, lw=4, color='blue', alpha=0.5)
+        ax1.minorticks_on()
+        ax1.grid(which="both", alpha=0.3)
+
+        ax2 = fig.add_subplot(212, xlabel=r'time [s]', ylabel=r'$\frac{1}{\Omega_{\mathrm{e}} \mu} \frac{\mathrm{d} \mu}{\mathrm{d} t}$')
+        ax2.plot(dp_time, dp_d_mu_dt, lw=4, color='blue', alpha=0.5)
+        ax2.minorticks_on()
+        ax2.grid(which="both", alpha=0.3)
+
+        fig.subplots_adjust()
 
 
 

@@ -30,11 +30,12 @@ initial_particle_number = 180
 initial_particle_number_divide = 5
 
 #channel_list = [1, 2, 10, 11, 12, 13]
-channel_list = [1, 2, 10, 11, 12, 13, 14, 15, 22, 23, 24]
+channel_list = [1, 2, 10, 11, 12, 13, 14, 15, 22, 23, 24, 25]
 #1:trajectory, 2:energy & equatorial pitch angle, 10:wavephase variation on particle
 #11:wavephase on particle vs. wave phase speed, 12:wave parallel components' forces, 13:particle velocity, 14:plasma beta on particle
 #15:wave parallel components times particle parallel velocity (7 kinds) & pitch angle & energy & plasma beta & scalar potential
 #22:psi-theta plot, 23:wave phase & wave trapping frequency & delta_m & stable/unstable point time variation, 24:delta_m & Gamma_tr
+#25:mu time variation
 
 rad2deg = 180E0 / np.pi
 deg2rad = np.pi / 180E0
@@ -121,6 +122,9 @@ def main(count_grad, count_angle, count_kind, particle_file_number, channel):
             return
     elif (channel == 24):
         if (check_file_exists(f'{dir_name}/result_pendulum_theory_delta_B_effect/particle_trajectory{particle_file_number}.png') == True):
+            return
+    elif (channel == 25):
+        if (check_file_exists(f'{dir_name}/result_mu_time_variation/particle_trajectory{particle_file_number}.png') == True):
             return
 
     data_particle   = np.genfromtxt(file_name_particle, unpack=True)
@@ -978,7 +982,7 @@ def main(count_grad, count_angle, count_kind, particle_file_number, channel):
 
         fig.savefig(f'{dir_name}/result_pendulum_theory_time_variation/particle_trajectory{particle_file_number}.png')
     
-    if ((channel == 22 or channel == 23 or channel == 24) and switch_delta_Epara == 1E0):
+    if ((channel == 22 or channel == 23 or channel == 24 or channel == 25) and switch_delta_Epara == 1E0):
 
         if (switch_delta_Epara == 0E0):
             return
@@ -1114,12 +1118,13 @@ def main(count_grad, count_angle, count_kind, particle_file_number, channel):
             ax2.minorticks_on()
             ax2.grid(which="both", alpha=0.3)
 
-            ax3 = fig.add_subplot(gs[2, 0], sharex=ax1, ylabel=r'$\beta_{\mathrm{i}}$', yscale='log')
-            ax3.plot(dp_time, dp_beta_ion, lw=4, color='blue')
+            ax3 = fig.add_subplot(gs[2, 0], sharex=ax1, ylabel=r'MLAT [deg]')
+            #ax3.plot(dp_time, dp_beta_ion, lw=4, color='blue')
+            ax3.plot(dp_time, dp_mlat_rad*rad2deg, lw=4, color='blue')
             ax3.minorticks_on()
-            ylim_ax3 = ax3.get_ylim()
-            ax3.hlines(mass_electron/mass_ion, dp_time[0], dp_time[-1], color='dimgrey', lw=4, linestyles='dashed', alpha=0.5)
-            ax3.set_ylim(ylim_ax3)
+            #ylim_ax3 = ax3.get_ylim()
+            #ax3.hlines(mass_electron/mass_ion, dp_time[0], dp_time[-1], color='dimgrey', lw=4, linestyles='dashed', alpha=0.5)
+            #ax3.set_ylim(ylim_ax3)
             ax3.grid(which="both", alpha=0.3)
             ax3.tick_params(labelbottom=False, bottom=True)
 
@@ -1226,6 +1231,31 @@ def main(count_grad, count_angle, count_kind, particle_file_number, channel):
 
             mkdir(f'{dir_name}/result_pendulum_theory_delta_B_effect')
             fig.savefig(f'{dir_name}/result_pendulum_theory_delta_B_effect/particle_trajectory{particle_file_number}.png')
+
+        if (channel == 25):
+
+            dp_cyclotron_freq_electron_0 = (elementary_charge/1E1*speed_of_light*1E2) * dp_B0 / mass_electron / (speed_of_light*1E2)   #[rad/s]
+            dp_d_mu_dt_normalized = (1E0 + dp_Phi_B / dp_B0**2E0 * np.cos(dp_wavephase))**(-2E0) * np.sin(dp_wavephase) * (- wave_frequency / dp_cyclotron_freq_electron_0 * dp_Phi_B / dp_B0**2E0 + 2E0 / dp_gamma * dp_v_para / speed_of_light * dp_kpara * dp_Phi / dp_B0 * (1E0 + dp_Phi_B / dp_B0**2E0 * np.cos(dp_wavephase)))    #[rad/s^2]
+            dp_d_mu_dt = dp_d_mu_dt_normalized * dp_mu * dp_cyclotron_freq_electron_0    #[erg/G/s]=[statC/cm^2/s]
+
+
+            fig = plt.figure(figsize=(20, 30), dpi=100)
+            fig.suptitle(str(wavekind) + r', initial energy = ' + str(int(dp_energy[0])) + r' [eV], pitch angle = ' + str(int(np.round(dp_pitchangle_eq[0]))) + r' [deg],' '\n' r'grad = ' + str(int(gradient_parameter)) + r', wavephase @ 0 deg = ' + str(int(initial_wavephase)) + r' [deg]')
+
+            ax1 = fig.add_subplot(211, xlabel=r'time [s]', ylabel=r'$\mu / \mu (t=0)$')
+            ax1.plot(dp_time, dp_mu / dp_mu[0], lw=4, color='blue', alpha=0.5)
+            ax1.minorticks_on()
+            ax1.grid(which="both", alpha=0.3)
+
+            ax2 = fig.add_subplot(212, xlabel=r'time [s]', ylabel=r'$\frac{1}{\mu (t=0)} \frac{\mathrm{d} \mu}{\mathrm{d} t}$ $[s^{-1}]$')
+            ax2.plot(dp_time, dp_d_mu_dt / dp_mu[0], lw=4, color='blue', alpha=0.5)
+            ax2.minorticks_on()
+            ax2.grid(which="both", alpha=0.3)
+
+            fig.subplots_adjust()
+
+            mkdir(f'{dir_name}/result_mu_time_variation')
+            fig.savefig(f'{dir_name}/result_mu_time_variation/particle_trajectory{particle_file_number}.png')
 
 
 

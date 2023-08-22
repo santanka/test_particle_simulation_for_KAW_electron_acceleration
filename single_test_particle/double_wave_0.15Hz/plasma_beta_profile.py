@@ -187,7 +187,7 @@ if channel == 4:
     color = ax.pcolormesh(MLAT_DEG, ELECTRON_ENERGY, Gamma, cmap='turbo', shading='auto')
     ct = ax.contour(MLAT_DEG, ELECTRON_ENERGY, Gamma, colors='black', linewidths=1, levels=[0.96, 0.97, 0.98, 0.99])
     ax.clabel(ct)
-    plt.colorbar(color, ax=ax, label=r'$(\omega_{\mathrm{mtr}} / \omega_{\mathrm{tr}})^{2} = S / S_{\mathrm{m}}$')
+    plt.colorbar(color, ax=ax, label=r'$\Gamma$ index')
     ax.minorticks_on()
     ax.grid(which='both', alpha=0.3)
     ax.set_xlabel(r'MLAT [deg]')

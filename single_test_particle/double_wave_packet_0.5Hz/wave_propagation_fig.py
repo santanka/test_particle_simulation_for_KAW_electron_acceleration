@@ -27,7 +27,7 @@ b = 8E0 * np.pi * pressure_ion / B0_eq**2E0
 # 積分範囲の設定
 lambda_value = 1.0
 lower_limit = 0
-upper_limit = np.linspace(0, 40, 1000) / 180 * np.pi
+upper_limit = np.linspace(0, 50, 1000) / 180 * np.pi
 
 # 積分する関数の定義
 def integrand(lambda_prime):
@@ -53,9 +53,9 @@ mpl.rcParams['mathtext.fontset'] = 'cm'
 plt.rcParams["font.size"] = 35
 
 fig = plt.figure(figsize=(14, 14), dpi=100, tight_layout=True)
-ax = fig.add_subplot(111, xlabel=r'MLAT [deg]', ylabel=r'time [s]', xlim=(-40, 40), ylim=(0, 40)) #
+ax = fig.add_subplot(111, xlabel=r'MLAT [deg]', ylabel=r'time [s]', xlim=(-50, 50), ylim=(0, 35)) #
 
-ax.vlines(0, 0, 40, color='k', linestyle='--', linewidth=2)
+ax.vlines(0, 0, 35, color='k', linestyle='--', linewidth=2)
 
 color_list = ['b', 'm', 'g', 'r', 'c']
 

@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import os
 
+###没###
+
 # magnetic latitude
 mlat_max_deg = 50.0   # [deg]
 mlat_min_deg = 0.0    # [deg]
