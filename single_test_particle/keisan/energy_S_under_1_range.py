@@ -148,84 +148,61 @@ def trapping_frequency(mlat_rad):
 def function_lower_energy_S(mlat_rad, S_variable):
     return S_variable - (delta(mlat_rad) + epsilon(mlat_rad)) * (np.sqrt(2E0) * Pi_S(S_variable) - np.sqrt(energy_wave_phase_speed(mlat_rad) / energy_wave_potential(mlat_rad)))**2E0
 
-def function_lower_energy_S_border(mlat_rad, S_variable):
-    return Pi_S(S_variable) - wave_frequency / 2E0 / trapping_frequency(mlat_rad)
-
 
 def Newton_method_function_lower_energy_S(mlat_rad):
     initial_S_variable = 0E0
     S_variable_before_update = initial_S_variable
     count_iteration = 0
-    if trapping_frequency(mlat_rad) > wave_frequency / 2E0:
-        while True:
-            diff = function_lower_energy_S_border(mlat_rad, S_variable_before_update) / gradient_S(function_lower_energy_S_border, mlat_rad, S_variable_before_update)
-            S_variable_after_update = S_variable_before_update - diff
-            if abs(S_variable_after_update - S_variable_before_update) < 1E-7:
+    while True:
+        diff = function_lower_energy_S(mlat_rad, S_variable_before_update) / gradient_S(function_lower_energy_S, mlat_rad, S_variable_before_update)
+        S_variable_after_update = S_variable_before_update - diff
+        if abs(S_variable_after_update - S_variable_before_update) < 1E-7:
+            break
+        else:
+            S_variable_before_update = S_variable_after_update
+            count_iteration += 1
+            if S_variable_after_update > 1E0 or S_variable_after_update < -1E0:
+                S_variable_after_update = np.nan
                 break
-            else:
-                S_variable_before_update = S_variable_after_update
-                count_iteration += 1
-                if S_variable_after_update > 1E0:
-                    S_variable_after_update = 1E0
-                    break
-                elif S_variable_after_update < 0E0:
-                    S_variable_after_update = np.nan
-                    break
-    else:
-        while True:
-            diff = function_lower_energy_S(mlat_rad, S_variable_before_update) / gradient_S(function_lower_energy_S, mlat_rad, S_variable_before_update)
-            S_variable_after_update = S_variable_before_update - diff
-            if abs(S_variable_after_update - S_variable_before_update) < 1E-7:
-                break
-            else:
-                S_variable_before_update = S_variable_after_update
-                count_iteration += 1
-                if S_variable_after_update > 1E0:
-                    S_variable_after_update = 1E0
-                    break
-                elif S_variable_after_update < 0E0:
-                    S_variable_after_update = np.nan
-                    break
+    
+    if Pi_S(S_variable_after_update) >= np.sqrt(energy_wave_phase_speed(mlat_rad) / 2E0 / energy_wave_potential(mlat_rad)):
+        S_variable_after_update = 0E0
+    
     return S_variable_after_update
 
-
-
 def energy_lower_limit(mlat_rad, S_variable):
-    if trapping_frequency(mlat_rad) > wave_frequency / 2E0:
-        return 0E0
-    else:
-        return 1E0 / energy_wave_potential(mlat_rad) * (delta(mlat_rad) + epsilon(mlat_rad)) * (np.sqrt(2E0 * energy_wave_potential(mlat_rad)) * Pi_S(S_variable) - np.sqrt(energy_wave_phase_speed(mlat_rad)))**2E0    #[J]
+    return energy_wave_potential(mlat_rad) / (delta(mlat_rad) + epsilon(mlat_rad)) * S_variable    #[J]
 
 # calculation
 
 mlat_deg_array = np.linspace(0E0, 50E0, 10000)
 mlat_rad_array = mlat_deg_array / 180E0 * np.pi
 
-delta_array = np.zeros(len(mlat_deg_array))
-epsilon_array = np.zeros(len(mlat_deg_array))
-
-for count_i in range(len(mlat_deg_array)):
-    delta_array[count_i] = delta(mlat_rad_array[count_i])
-    epsilon_array[count_i] = epsilon(mlat_rad_array[count_i])
-
-#delta_arrayとepsilon_arrayをplot
-mpl.rcParams['text.usetex'] = True
-mpl.rcParams['font.family'] = 'serif'
-mpl.rcParams['font.serif'] = ['Computer Modern Roman']
-mpl.rcParams['mathtext.fontset'] = 'cm'
-plt.rcParams["font.size"] = 35
-
-fig = plt.figure(figsize=(14, 14), dpi=100)
-ax = fig.add_subplot(111, xlabel=r'MLAT [deg]', xlim=(0E0, 50E0), yscale='log')
-ax.plot(mlat_deg_array, delta_array, color='red', linewidth=4E0, alpha=0.5, label=r'$\delta$')
-ax.plot(mlat_deg_array, epsilon_array, color='blue', linewidth=4E0, alpha=0.5, label=r'$\varepsilon$')
-ax.minorticks_on()
-ax.grid(which='both', alpha=0.3)
-ax.legend()
-plt.tight_layout()
-plt.show()
-
-quit()
+#delta_array = np.zeros(len(mlat_deg_array))
+#epsilon_array = np.zeros(len(mlat_deg_array))
+#
+#for count_i in range(len(mlat_deg_array)):
+#    delta_array[count_i] = delta(mlat_rad_array[count_i])
+#    epsilon_array[count_i] = epsilon(mlat_rad_array[count_i])
+#
+##delta_arrayとepsilon_arrayをplot
+#mpl.rcParams['text.usetex'] = True
+#mpl.rcParams['font.family'] = 'serif'
+#mpl.rcParams['font.serif'] = ['Computer Modern Roman']
+#mpl.rcParams['mathtext.fontset'] = 'cm'
+#plt.rcParams["font.size"] = 35
+#
+#fig = plt.figure(figsize=(14, 14), dpi=100)
+#ax = fig.add_subplot(111, xlabel=r'MLAT [deg]', xlim=(0E0, 50E0), yscale='log')
+#ax.plot(mlat_deg_array, delta_array, color='red', linewidth=4E0, alpha=0.5, label=r'$\delta$')
+#ax.plot(mlat_deg_array, epsilon_array, color='blue', linewidth=4E0, alpha=0.5, label=r'$\varepsilon$')
+#ax.minorticks_on()
+#ax.grid(which='both', alpha=0.3)
+#ax.legend()
+#plt.tight_layout()
+#plt.show()
+#
+#quit()
 
 
 S_limit_upper_energy = np.zeros(len(mlat_deg_array))

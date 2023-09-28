@@ -228,55 +228,31 @@ def trapping_frequency(mlat_rad):
 def function_lower_energy_S(mlat_rad, S_variable):
     return S_variable - (delta(mlat_rad) + epsilon(mlat_rad)) * (np.sqrt(2E0) * Pi_S(S_variable) - np.sqrt(energy_wave_phase_speed(mlat_rad) / energy_wave_potential(mlat_rad)))**2E0
 
-def function_lower_energy_S_border(mlat_rad, S_variable):
-    return Pi_S(S_variable) - wave_frequency / 2E0 / trapping_frequency(mlat_rad)
-
 
 def Newton_method_function_lower_energy_S(mlat_rad):
+    initial_S_variable = 0E0
+    S_variable_before_update = initial_S_variable
     count_iteration = 0
-    if trapping_frequency(mlat_rad) > wave_frequency / 2E0:
-        initial_S_variable = 0E0
-        S_variable_before_update = initial_S_variable
-        while True:
-            diff = function_lower_energy_S_border(mlat_rad, S_variable_before_update) / gradient_S(function_lower_energy_S_border, mlat_rad, S_variable_before_update)
-            S_variable_after_update = S_variable_before_update - diff
-            if abs(S_variable_after_update - S_variable_before_update) < 1E-7:
+    while True:
+        diff = function_lower_energy_S(mlat_rad, S_variable_before_update) / gradient_S(function_lower_energy_S, mlat_rad, S_variable_before_update)
+        S_variable_after_update = S_variable_before_update - diff
+        if abs(S_variable_after_update - S_variable_before_update) < 1E-7:
+            break
+        else:
+            S_variable_before_update = S_variable_after_update
+            count_iteration += 1
+            if S_variable_after_update > 1E0 or S_variable_after_update < -1E0:
+                S_variable_after_update = np.nan
                 break
-            else:
-                S_variable_before_update = S_variable_after_update
-                count_iteration += 1
-                if S_variable_after_update > 1E0:
-                    S_variable_after_update = 1E0
-                    break
-                elif S_variable_after_update < 0E0:
-                    S_variable_after_update = np.nan
-                    break
-    else:
-        initial_S_variable = 0E0
-        S_variable_before_update = initial_S_variable
-        while True:
-            diff = function_lower_energy_S(mlat_rad, S_variable_before_update) / gradient_S(function_lower_energy_S, mlat_rad, S_variable_before_update)
-            S_variable_after_update = S_variable_before_update - diff
-            if abs(S_variable_after_update - S_variable_before_update) < 1E-7:
-                break
-            else:
-                S_variable_before_update = S_variable_after_update
-                count_iteration += 1
-                if S_variable_after_update > 1E0:
-                    S_variable_after_update = 1E0
-                    break
-                elif S_variable_after_update < 0E0:
-                    S_variable_after_update = np.nan
-                    break
+    
+    if Pi_S(S_variable_after_update) >= np.sqrt(energy_wave_phase_speed(mlat_rad) / 2E0 / energy_wave_potential(mlat_rad)):
+        S_variable_after_update = 0E0
+    
     return S_variable_after_update
 
-
-
 def energy_lower_limit(mlat_rad, S_variable):
-    if trapping_frequency(mlat_rad) > wave_frequency / 2E0:
-        return 0E0
-    else:
-        return 1E0 / energy_wave_potential(mlat_rad) * (delta(mlat_rad) + epsilon(mlat_rad)) * (np.sqrt(2E0 * energy_wave_potential(mlat_rad)) * Pi_S(S_variable) - np.sqrt(energy_wave_phase_speed(mlat_rad)))**2E0    #[J]
+    return energy_wave_potential(mlat_rad) / (delta(mlat_rad) + epsilon(mlat_rad)) * S_variable    #[J]
+
 
 # calculation
 
@@ -291,14 +267,14 @@ energy_lower_limit_S = np.zeros(len(mlat_deg_array))
 for count_i in range(len(mlat_deg_array)):
     S_limit_upper_energy[count_i] = Newton_method_function_upper_energy_S(mlat_rad_array[count_i])
     energy_upper_limit_S[count_i] = energy_upper_limit(mlat_rad_array[count_i], S_limit_upper_energy[count_i])
-    #S_limit_lower_energy[count_i] = Newton_method_function_lower_energy_S(mlat_rad_array[count_i])
+    S_limit_lower_energy[count_i] = Newton_method_function_lower_energy_S(mlat_rad_array[count_i])
     #print(energy_upper_limit_S[count_i])
     if energy_upper_limit_S[count_i] != energy_upper_limit_S[count_i]:
         energy_lower_limit_S[count_i] = np.nan
     else:
-        energy_lower_limit_S[count_i] = 0E0#energy_lower_limit(mlat_rad_array[count_i], S_limit_lower_energy[count_i])
+        energy_lower_limit_S[count_i] = energy_lower_limit(mlat_rad_array[count_i], S_limit_lower_energy[count_i])
     now = datetime.datetime.now()
-    print(count_i+1, len(mlat_deg_array), now, mlat_deg_array[count_i], S_limit_lower_energy[count_i], energy_lower_limit_S[count_i] / elementary_charge, function_lower_energy_S_border(mlat_rad_array[count_i], S_limit_lower_energy[count_i]))
+    #print(count_i+1, len(mlat_deg_array), now, mlat_deg_array[count_i], S_limit_lower_energy[count_i], energy_lower_limit_S[count_i] / elementary_charge, function_lower_energy_S_border(mlat_rad_array[count_i], S_limit_lower_energy[count_i]))
 
 upper_energy_trapped_S1 = np.zeros(len(mlat_deg_array))
 for count_i in range(len(mlat_deg_array)):
