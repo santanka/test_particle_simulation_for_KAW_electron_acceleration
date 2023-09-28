@@ -8,11 +8,11 @@ initial_wavephase       = 0E0       #[deg]
 gradient_parameter      = 2E0       #[]
 wave_threshold          = 5E0       #[deg]
 
-wavekind                = r'EparaBpara'
+wavekind                = r'Epara'
 switch_delta_Epara      = 1E0
 switch_delta_Eperp_perp = 0E0
 switch_delta_Eperp_phi  = 0E0
-switch_delta_Bpara      = 1E0
+switch_delta_Bpara      = 0E0
 switch_delta_Bperp      = 0E0
 
 switch_wave_packet = 0E0
@@ -20,11 +20,11 @@ switch_wave_packet = 0E0
 wave_frequency = 2E0 * np.pi * 0.15    #[rad/s]
 kperp_rhoi = 2E0 * np.pi
 
-particle_file_number    = r'03-017'
+particle_file_number    = r'20-102'
 data_limit_under        = 0
-data_limit_upper        =200000
+data_limit_upper        =100000
 
-channel = 6
+channel = 22
 #1:trajectory, 2:energy & equatorial pitch angle, 3:delta_Epara (t=8pi/wave_freq), 4:delta_Eperpperp (t=8pi/wave_freq), 5:delta_Eperpphi (t=8pi/wave_freq)
 #6:delta_Bpara (t=8pi/wave_freq), 7:delta_Bperp (t=8pi/wave_freq), 8:wave frequency, 9:wavelength, 10:wavephase variation on particle
 #11:wavephase on particle vs. wave phase speed, 12:wave parallel components' forces, 13:particle velocity, 14:plasma beta on particle
@@ -128,7 +128,7 @@ mpl.rcParams['text.usetex'] = True
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.serif'] = ['Computer Modern Roman']
 mpl.rcParams['mathtext.fontset'] = 'cm'
-plt.rcParams["font.size"] = 35
+plt.rcParams["font.size"] = 45
 
 #ファイルの確認
 def check_file_exists(filename):

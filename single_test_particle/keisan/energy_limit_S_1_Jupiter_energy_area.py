@@ -46,7 +46,7 @@ ion_number_density = oxygen_number_density + proton_number_density    #[m^-3]
 ion_mass_density = oxygen_number_density * oxygen_mass + proton_number_density * proton_mass    #[kg m^-3]
 ion_mass = ion_mass_density / ion_number_density    #[kg]
 
-ion_pressure = ion_number_density * proton_temperature * elementary_charge    #[N m^-2]
+ion_pressure = (proton_number_density * proton_temperature + oxygen_number_density * oxygen_temperature) * elementary_charge    #[N m^-2]
 ion_temperature = ion_pressure / ion_number_density / elementary_charge    #[eV]
 
 electron_mass = 9.10938356E-31    # [kg]
@@ -91,6 +91,7 @@ wave_modified_potential = electric_field_eq / kpara[0]     #[V]
 
 energy_wave_phase_speed = 5E-1 * electron_mass * wave_phase_speed_parallel**2E0 / elementary_charge    #[eV]
 energy_wave_potential = 5E-1 * elementary_charge * wave_modified_potential / elementary_charge    #[eV]
+
 
 # 微分
 def diff(f):

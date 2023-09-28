@@ -46,7 +46,7 @@ ion_number_density = oxygen_number_density + proton_number_density    #[m^-3]
 ion_mass_density = oxygen_number_density * oxygen_mass + proton_number_density * proton_mass    #[kg m^-3]
 ion_mass = ion_mass_density / ion_number_density    #[kg]
 
-ion_pressure = ion_number_density * proton_temperature * elementary_charge    #[N m^-2]
+ion_pressure = (proton_number_density * proton_temperature + oxygen_number_density * oxygen_temperature) * elementary_charge    #[N m^-2]
 ion_temperature = ion_pressure / ion_number_density / elementary_charge    #[eV]
 
 electron_mass = 9.10938356E-31    # [kg]
