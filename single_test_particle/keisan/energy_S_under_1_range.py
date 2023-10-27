@@ -12,7 +12,7 @@ electric_constant = 8.8541878128E-12  #[F m-1]
 magnetic_constant = 1.25663706212E-6  #[N A-2]
 
 #planet condition
-planet_radius   = 6371E3  #[m]
+planet_radius   = 6378.1E3  #[m]
 lshell_number   = 9E0
 r_eq            = planet_radius * lshell_number #[m]
 
@@ -103,7 +103,7 @@ def delta(mlat_rad):
 def epsilon(mlat_rad):
     return delta(mlat_rad) * (3E0 - 4E0 * tau(mlat_rad) / (plasma_beta_ion(mlat_rad) * (1E0 + tau(mlat_rad)) + 2E0 * tau(mlat_rad)))    #[rad^-1]
 
-
+#上部
 # energy upper limit
 
 def Pi_S(S_variable):
@@ -132,6 +132,9 @@ def Newton_method_function_upper_energy_S(mlat_rad):
             S_variable_before_update = S_variable_after_update
             count_iteration += 1
             if S_variable_after_update > 1E0 or S_variable_after_update < -1E0:
+                S_variable_after_update = np.nan
+                break
+            if count_iteration > 100000:
                 S_variable_after_update = np.nan
                 break
     return S_variable_after_update
@@ -173,6 +176,41 @@ def Newton_method_function_lower_energy_S(mlat_rad):
 def energy_lower_limit(mlat_rad, S_variable):
     return energy_wave_potential(mlat_rad) / (delta(mlat_rad) + epsilon(mlat_rad)) * S_variable    #[J]
 
+
+# 下部
+# energy upper limit
+
+def function_minus_upper_energy_S(mlat_rad, S_variable):
+    return S_variable - (delta(mlat_rad) + epsilon(mlat_rad)) * (np.sqrt(2E0) * Pi_S(S_variable) - np.sqrt(energy_wave_phase_speed(mlat_rad) / energy_wave_potential(mlat_rad)))**2E0
+
+def Newton_method_function_minus_upper_energy_S(mlat_rad):
+    initial_S_variable = 0E0
+    S_variable_before_update = initial_S_variable
+    count_iteration = 0
+    while True:
+        diff = function_minus_upper_energy_S(mlat_rad, S_variable_before_update) / gradient_S(function_minus_upper_energy_S, mlat_rad, S_variable_before_update)
+        S_variable_after_update = S_variable_before_update - diff
+        if abs(S_variable_after_update - S_variable_before_update) < 1E-7:
+            break
+        else:
+            S_variable_before_update = S_variable_after_update
+            count_iteration += 1
+            if S_variable_after_update > 1E0 or S_variable_after_update < -1E0:
+                S_variable_after_update = np.nan
+                break
+    
+    if Pi_S(S_variable_after_update) <= np.sqrt(energy_wave_phase_speed(mlat_rad) / 2E0 / energy_wave_potential(mlat_rad)):
+        S_variable_after_update = 0E0
+
+    return S_variable_after_update
+
+def energy_minus_upper_limit(mlat_rad, S_variable):
+    return energy_wave_potential(mlat_rad) / (delta(mlat_rad) + epsilon(mlat_rad)) * S_variable    #[J]
+
+# energy lower limit
+def energy_minus_lower_limit(mlat_rad):
+    return 0E0
+
 # calculation
 
 mlat_deg_array = np.linspace(0E0, 50E0, 10000)
@@ -209,18 +247,28 @@ S_limit_upper_energy = np.zeros(len(mlat_deg_array))
 energy_upper_limit_S = np.zeros(len(mlat_deg_array))
 S_limit_lower_energy = np.zeros(len(mlat_deg_array))
 energy_lower_limit_S = np.zeros(len(mlat_deg_array))
+S_limit_minus_upper_energy = np.zeros(len(mlat_deg_array))
+energy_minus_upper_limit_S = np.zeros(len(mlat_deg_array))
+energy_minus_lower_limit_S = np.zeros(len(mlat_deg_array))
 
 for count_i in range(len(mlat_deg_array)):
     S_limit_upper_energy[count_i] = Newton_method_function_upper_energy_S(mlat_rad_array[count_i])
     energy_upper_limit_S[count_i] = energy_upper_limit(mlat_rad_array[count_i], S_limit_upper_energy[count_i])
-    S_limit_lower_energy[count_i] = Newton_method_function_lower_energy_S(mlat_rad_array[count_i])
+    
     #print(energy_upper_limit_S[count_i])
     if energy_upper_limit_S[count_i] != energy_upper_limit_S[count_i]:
         energy_lower_limit_S[count_i] = np.nan
+        energy_minus_upper_limit_S[count_i] = np.nan
+        energy_minus_lower_limit_S[count_i] = np.nan
     else:
+        S_limit_lower_energy[count_i] = Newton_method_function_lower_energy_S(mlat_rad_array[count_i])
+        S_limit_minus_upper_energy[count_i] = Newton_method_function_minus_upper_energy_S(mlat_rad_array[count_i])
         energy_lower_limit_S[count_i] = energy_lower_limit(mlat_rad_array[count_i], S_limit_lower_energy[count_i])
+        energy_minus_upper_limit_S[count_i] = energy_minus_upper_limit(mlat_rad_array[count_i], S_limit_minus_upper_energy[count_i])
+        energy_minus_lower_limit_S[count_i] = energy_minus_lower_limit(mlat_rad_array[count_i])
     now = datetime.datetime.now()
-    #print(count_i+1, len(mlat_deg_array), now, mlat_deg_array[count_i], S_limit_lower_energy[count_i], energy_lower_limit_S[count_i] / elementary_charge, function_lower_energy_S_border(mlat_rad_array[count_i], S_limit_lower_energy[count_i]))
+    print(now, count_i, len(mlat_deg_array)-1, energy_upper_limit_S[count_i]/elementary_charge, energy_lower_limit_S[count_i]/elementary_charge, energy_minus_upper_limit_S[count_i]/elementary_charge, energy_minus_lower_limit_S[count_i]/elementary_charge)
+
 
 upper_energy_trapped_S1 = np.zeros(len(mlat_deg_array))
 for count_i in range(len(mlat_deg_array)):
@@ -238,9 +286,11 @@ ax.set_title(r'$K \mathrm{cos}^2 \alpha$')
 
 # energy_upper_limit_Sとenergy_lower_limit_Sの間のエネルギー領域を塗りつぶす
 ax.fill_between(mlat_deg_array, energy_lower_limit_S / elementary_charge, energy_upper_limit_S / elementary_charge, facecolor='yellow', alpha=0.2)
+ax.fill_between(mlat_deg_array, energy_minus_lower_limit_S / elementary_charge, energy_minus_upper_limit_S / elementary_charge, facecolor='aqua', alpha=0.2)
 
-ax.plot(mlat_deg_array, energy_upper_limit_S / elementary_charge, color='orange', linewidth=4E0, alpha=0.5, label=r'energy limit')
+ax.plot(mlat_deg_array, energy_upper_limit_S / elementary_charge, color='orange', linewidth=4E0, alpha=0.5, label=r'plus energy limit')
 ax.plot(mlat_deg_array, energy_lower_limit_S / elementary_charge, color='orange', linewidth=4E0, alpha=0.5)
+ax.plot(mlat_deg_array, energy_minus_upper_limit_S / elementary_charge, color='dodgerblue', linewidth=4E0, alpha=0.5, label=r'minus energy limit')
 ax.plot(mlat_deg_array, energy_wave_phase_speed(mlat_rad_array) / elementary_charge, color='red', linewidth=4E0, alpha=0.5, label=r'$K_{\mathrm{ph \parallel}}$')
 ax.plot(mlat_deg_array, energy_wave_potential(mlat_rad_array) * np.ones(len(mlat_rad_array)) / elementary_charge, color='green', linewidth=4E0, alpha=0.5, label=r'$K_{\mathrm{E}}$')
 ax.plot(mlat_deg_array, upper_energy_trapped_S1 / elementary_charge, color='blue', linewidth=4E0, alpha=0.5, label=r'$S < 1$ range')
@@ -251,4 +301,6 @@ ax.grid(which='both', alpha=0.3)
 ax.legend()
 
 plt.tight_layout()
-plt.show()
+plt.savefig('/mnt/j/KAW_simulation_data/single_test_particle/keisan/energy_S_under_1_range_Earth_L_9.png', dpi=100)
+plt.savefig('/mnt/j/KAW_simulation_data/single_test_particle/keisan/energy_S_under_1_range_Earth_L_9.pdf', dpi=100)
+#plt.show()
