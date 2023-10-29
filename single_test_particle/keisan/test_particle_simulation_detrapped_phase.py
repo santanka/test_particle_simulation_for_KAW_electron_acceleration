@@ -119,7 +119,7 @@ psi_initial_array = np.linspace(-np.pi, 0E0, array_size)
 psi_initial_vmin = -np.pi / np.pi
 psi_initial_vmax = 0E0 / np.pi
 
-psi_end = -np.pi * 3
+psi_end = -np.pi
 
 figure_name_suffix = [r'mu_change', r'theta_change', r'psi_change']
 
@@ -334,7 +334,7 @@ def main_1(index):
         psi_initial_reference = psi_initial_array
         vmin = psi_initial_vmin
         vmax = psi_initial_vmax
-        color_target = psi_initial_array
+        color_target = psi_initial_array / np.pi
         psi_max = 0E0 / np.pi
         psi_min = psi_end / np.pi
         fig.suptitle(r'$K_{\perp}(\lambda = 0) = 500 \, \mathrm{eV}$, $\theta_{\mathrm{i}} = 0$')
