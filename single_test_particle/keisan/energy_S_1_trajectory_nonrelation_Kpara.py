@@ -116,7 +116,7 @@ energy_perp_array = np.zeros(len(mlat_rad_array))
 
 
 fig = plt.figure(figsize=(14, 14), dpi=100)
-ax = fig.add_subplot(111, xlabel=r'MLAT [deg]', ylabel=r'Energy [eV]', xlim=(0E0, 55E0), ylim=(1E1, 1E5), yscale='log')
+ax = fig.add_subplot(111, xlabel=r'MLAT [deg]', ylabel=r'Kinetic energy $K$ [eV]', yscale='log')
 
 cmap_color = cm.get_cmap('cool')
 
@@ -163,6 +163,11 @@ def main(args):
 for count_i in range(len(mlat_deg_array)):
     main(count_i)
 
+xlim_enlarged = ax.get_xlim()
+ylim_enlarged = ax.get_ylim()
+if ylim_enlarged[0] < 1E1:
+    ylim_enlarged = (1E1, ylim_enlarged[1])
+
 
 energy_wave_phase_speed_array = np.zeros(len(mlat_rad_array))
 energy_wave_potential_array = np.zeros(len(mlat_rad_array))
@@ -180,7 +185,10 @@ ax.plot(mlat_deg_array, energy_wave_phase_speed_array / elementary_charge, linew
 ax.plot(mlat_deg_array, energy_wave_potential_array / elementary_charge, linewidth=4, color='green', alpha=0.6, label=r'$K_{\mathrm{E}}$')
 ax.plot(mlat_deg_array, energy_S_1_upper_limit_array / elementary_charge, linewidth=4, color='blue', alpha=0.6, label=r'$S = 1$ range')
 ax.plot(mlat_deg_array, energy_S_1_lower_limit_array / elementary_charge, linewidth=4, color='blue', alpha=0.6)
-ax.plot(mlat_deg_array, energy_perp_array / elementary_charge, linewidth=4, color='purple', alpha=0.6, label=r'$K_{\perp}$')
+ax.plot(mlat_deg_array, energy_perp_array / elementary_charge, linewidth=4, color='orange', alpha=0.6, label=r'$K_{\perp}$')
+
+ax.set_xlim(xlim_enlarged)
+ax.set_ylim(ylim_enlarged)
 
 ax.minorticks_on()
 ax.grid(which='both', alpha=0.3)

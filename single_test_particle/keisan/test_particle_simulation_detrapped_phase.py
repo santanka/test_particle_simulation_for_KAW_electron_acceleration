@@ -101,7 +101,8 @@ def Gamma(mlat_rad):
 # input parameters
 array_size = 13
 
-Kperp_eq_eV_base = 5E2 * np.ones(array_size) #[eV]
+Kperp_eq_eV_base_input = 10E2    #[eV]
+Kperp_eq_eV_base = Kperp_eq_eV_base_input * np.ones(array_size) #[eV]
 Kperp_eq_eV_array = np.array([1E1, 2E1, 5E1, 1E2, 2E2, 3E2, 4E2, 5E2, 6E2, 7E2, 8E2, 9E2, 1E3])
 Kperp_eq_eV_vmin = 1E1
 Kperp_eq_eV_vmax = 1E3
@@ -109,17 +110,17 @@ Kperp_eq_eV_vmax = 1E3
 mu_base = Kperp_eq_eV_base * elementary_charge / magnetic_flux_density(0E0)
 mu_array = Kperp_eq_eV_array * elementary_charge / magnetic_flux_density(0E0)
 
-theta_initial_base = 0E0 * np.ones(array_size)    #[rad/s]
+theta_initial_base = wave_frequency * np.ones(array_size)    #[rad/s]
 theta_initial_array = np.linspace(-wave_frequency, wave_frequency, array_size)
 theta_initial_vmin = -wave_frequency / wave_frequency
 theta_initial_vmax = wave_frequency / wave_frequency
 
 psi_initial_base = - np.pi / 2E0 * np.ones(array_size)    #[rad]
-psi_initial_array = np.linspace(-np.pi, 0E0, array_size)
+psi_initial_array = np.linspace(-np.pi, np.pi, array_size)
 psi_initial_vmin = -np.pi / np.pi
-psi_initial_vmax = 0E0 / np.pi
+psi_initial_vmax = np.pi / np.pi
 
-psi_end = -np.pi
+psi_end = -np.pi * 3E0
 
 figure_name_suffix = [r'mu_change', r'theta_change', r'psi_change']
 
@@ -185,6 +186,9 @@ def d_theta_d_t(mu, theta, psi, mlat_rad):
 def d_mlat_rad_d_t(theta, mlat_rad):
     return (theta + wave_frequency) / kpara(mlat_rad) / r_eq / np.cos(mlat_rad) / np.sqrt(1E0 + 3E0 * np.sin(mlat_rad)**2E0)    #[rad/s]
 
+def vpara(theta, mlat_rad):
+    return (theta + wave_frequency) / kpara(mlat_rad)    #[m/s]
+
 
 # runge-kutta method
 dt = 1E-3
@@ -234,6 +238,7 @@ def particle_calculation(args):
     # initial array
     mlat_rad_array = np.array([mlat_rad_0])
     theta_array = np.array([theta_0])
+    vpara_array = np.array([vpara(theta_0, mlat_rad_0)])
     psi_array = np.array([psi_0])
     time_array = np.array([time])
     Kperp_energy_array = np.array([Kperp_energy(mu, mlat_rad_0)])
@@ -249,6 +254,7 @@ def particle_calculation(args):
         time += dt
         mlat_rad_array = np.append(mlat_rad_array, mlat_rad_1)
         theta_array = np.append(theta_array, theta_1)
+        vpara_array = np.append(vpara_array, vpara(theta_1, mlat_rad_1))
         psi_array = np.append(psi_array, psi_1)
         time_array = np.append(time_array, time)
         Kperp_energy_array = np.append(Kperp_energy_array, Kperp_energy(mu, mlat_rad_1))
@@ -270,7 +276,7 @@ def particle_calculation(args):
                 theta_0 = theta_1
                 psi_0 = psi_1
     
-    return mlat_rad_array, theta_array, psi_array, time_array, Kperp_energy_array, Kpara_energy_array, Ktotal_energy_array, d_Ktotal_d_t_array, trapping_frequency_array, S_value_array, count_i
+    return mlat_rad_array, theta_array, vpara_array, psi_array, time_array, Kperp_energy_array, Kpara_energy_array, Ktotal_energy_array, d_Ktotal_d_t_array, trapping_frequency_array, S_value_array, count_i
 
 
 def main_1(index):
@@ -280,8 +286,9 @@ def main_1(index):
 
     axes = []
 
-    ax_1_1 = fig.add_subplot(gs[0:2, 0], xlabel=r'MLAT [deg]', ylabel=r'Kinetic energy $K$ [eV]', yscale='log', xlim=[0E0, mlat_upper_limit_deg], ylim=[1E1, 1E5])
-    ax_1_2 = fig.add_subplot(gs[2:4, 0], xlabel=r'MLAT [deg]', ylabel=r'Kinetic energy $K$ [eV]', yscale='log')
+    #ax_1_1 = fig.add_subplot(gs[0:2, 0], xlabel=r'MLAT [deg]', ylabel=r'Kinetic energy $K$ [eV]', yscale='log', xlim=[0E0, mlat_upper_limit_deg], ylim=[1E1, 1E5])
+    ax_1_1 = fig.add_subplot(gs[0:2, 0], xlabel=r'MLAT [deg]', ylabel=r'Parallel velocity $v_{\parallel}$ [$c$]')
+    ax_1_2 = fig.add_subplot(gs[2:4, 0], xlabel=r'MLAT [deg]', ylabel=r'Kinetic energy $K$ [eV]')#, yscale='log')
     ax_2_1 = fig.add_subplot(gs[0, 1], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$K$ [eV]', yscale='log')
     ax_2_2 = fig.add_subplot(gs[1, 1], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$K_{\perp}$ [eV]', yscale='log')
     ax_2_3 = fig.add_subplot(gs[2, 1], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$K_{\parallel}$ [eV]', yscale='log')
@@ -302,6 +309,10 @@ def main_1(index):
     axes.append(ax_3_3)
     axes.append(ax_3_4)
 
+    #各図に(a)のようなタイトルをy軸よりも左上につける
+    for count_k in range(10):
+        axes[count_k].text(-0.15, 1.0, r'('+chr(97+count_k)+')', transform=axes[count_k].transAxes, fontsize=35)
+
     # index = 0 -> mu change
     # index = 1 -> theta change
     # index = 2 -> psi change
@@ -315,7 +326,7 @@ def main_1(index):
         color_target = Kperp_eq_eV_array
         psi_max = 0E0 / np.pi
         psi_min = psi_end / np.pi
-        fig.suptitle(r'$\theta_{\mathrm{i}} = 0$, $\psi_{\mathrm{i}} = -0.5 \pi$')
+        fig.suptitle(r'$\theta_{\mathrm{i}} = \omega$, $\psi_{\mathrm{i}} = -0.5 \pi$')
 
     elif index == 1:
         mu_reference = mu_base
@@ -326,7 +337,7 @@ def main_1(index):
         color_target = theta_initial_array
         psi_max = 0E0 / np.pi
         psi_min = psi_end / np.pi
-        fig.suptitle(r'$K_{\perp}(\lambda = 0) = 500 \, \mathrm{eV}$, $\psi_{\mathrm{i}} = -0.5 \pi$')
+        fig.suptitle(r'$K_{\perp}(\lambda = 0) = 1000 \, \mathrm{eV}$, $\psi_{\mathrm{i}} = -0.5 \pi$')
     
     elif index == 2:
         mu_reference = mu_base
@@ -335,9 +346,9 @@ def main_1(index):
         vmin = psi_initial_vmin
         vmax = psi_initial_vmax
         color_target = psi_initial_array / np.pi
-        psi_max = 0E0 / np.pi
+        psi_max = np.pi / np.pi
         psi_min = psi_end / np.pi
-        fig.suptitle(r'$K_{\perp}(\lambda = 0) = 500 \, \mathrm{eV}$, $\theta_{\mathrm{i}} = 0$')
+        fig.suptitle(r'$K_{\perp}(\lambda = 0) = 1000 \, \mathrm{eV}$, $\theta_{\mathrm{i}} = \omega$')
     
     else:
         return
@@ -350,6 +361,7 @@ def main_1(index):
 cmap_color = cm.turbo
 
 for index in range(3):
+
     mu_reference, theta_initial_reference, psi_initial_reference, fig, gs, axes, vmin, vmax, color_target = main_1(index)
 
     mlat_deg_for_background = np.linspace(0E0, mlat_upper_limit_deg, 1000)
@@ -385,57 +397,67 @@ for index in range(3):
             results = p.map(particle_calculation, args)
         
         for result in results:
-            mlat_rad_array, theta_array, psi_array, time_array, Kperp_energy_array, Kpara_energy_array, Ktotal_energy_array, d_Ktotal_d_t_array, trapping_frequency_array, S_value_array, count_particle = result
+            mlat_rad_array, theta_array, vpara_array, psi_array, time_array, Kperp_energy_array, Kpara_energy_array, Ktotal_energy_array, d_Ktotal_d_t_array, trapping_frequency_array, S_value_array, count_particle = result
 
             color_target_array = np.ones(len(mlat_rad_array)) * color_target[count_particle]
 
             # plot
-            axes[0].scatter(mlat_rad_array * 180E0 / np.pi, Ktotal_energy_array / elementary_charge, c=color_target_array, cmap=cmap_color, vmin=vmin, vmax=vmax, alpha=0.3, s=1)
-            axes[0].scatter(mlat_rad_array[0] * 180E0 / np.pi, Ktotal_energy_array[0] / elementary_charge, s=50, c='black')
-            axes[0].scatter(mlat_rad_array[-1] * 180E0 / np.pi, Ktotal_energy_array[-1] / elementary_charge, s=50, c='black')
+            axes[0].scatter(mlat_rad_array * 180E0 / np.pi, vpara_array / speed_of_light, c=color_target_array, cmap=cmap_color, vmin=vmin, vmax=vmax, alpha=0.3, s=1)
+            axes[0].scatter(mlat_rad_array[0] * 180E0 / np.pi, vpara_array[0] / speed_of_light, s=50, c='black', marker='o')
+            axes[0].scatter(mlat_rad_array[-1] * 180E0 / np.pi, vpara_array[-1] / speed_of_light, s=50, c='black', marker='D')
+            #axes[0].scatter(mlat_rad_array * 180E0 / np.pi, Ktotal_energy_array / elementary_charge, c=color_target_array, cmap=cmap_color, vmin=vmin, vmax=vmax, alpha=0.3, s=1)
+            #axes[0].scatter(mlat_rad_array[0] * 180E0 / np.pi, Ktotal_energy_array[0] / elementary_charge, s=50, c='black', marker='o')
+            #axes[0].scatter(mlat_rad_array[-1] * 180E0 / np.pi, Ktotal_energy_array[-1] / elementary_charge, s=50, c='black', marker='D')
 
             axes[1].scatter(mlat_rad_array * 180E0 / np.pi, Ktotal_energy_array / elementary_charge, c=color_target_array, cmap=cmap_color, vmin=vmin, vmax=vmax, alpha=0.3, s=1)
-            axes[1].scatter(mlat_rad_array[0] * 180E0 / np.pi, Ktotal_energy_array[0] / elementary_charge, s=50, c='black')
-            axes[1].scatter(mlat_rad_array[-1] * 180E0 / np.pi, Ktotal_energy_array[-1] / elementary_charge, s=50, c='black')
+            axes[1].scatter(mlat_rad_array[0] * 180E0 / np.pi, Ktotal_energy_array[0] / elementary_charge, s=50, c='black', marker='o')
+            axes[1].scatter(mlat_rad_array[-1] * 180E0 / np.pi, Ktotal_energy_array[-1] / elementary_charge, s=50, c='black', marker='D')
 
             axes[2].scatter(psi_array / np.pi, Ktotal_energy_array / elementary_charge, c=color_target_array, cmap=cmap_color, vmin=vmin, vmax=vmax, alpha=0.3, s=1)
-            axes[2].scatter(psi_array[0] / np.pi, Ktotal_energy_array[0] / elementary_charge, s=50, c='black')
-            axes[2].scatter(psi_array[-1] / np.pi, Ktotal_energy_array[-1] / elementary_charge, s=50, c='black')
+            axes[2].scatter(psi_array[0] / np.pi, Ktotal_energy_array[0] / elementary_charge, s=50, c='black', marker='o')
+            axes[2].scatter(psi_array[-1] / np.pi, Ktotal_energy_array[-1] / elementary_charge, s=50, c='black', marker='D')
 
             axes[3].scatter(psi_array / np.pi, Kperp_energy_array / elementary_charge, c=color_target_array, cmap=cmap_color, vmin=vmin, vmax=vmax, alpha=0.3, s=1)
-            axes[3].scatter(psi_array[0] / np.pi, Kperp_energy_array[0] / elementary_charge, s=50, c='black')
-            axes[3].scatter(psi_array[-1] / np.pi, Kperp_energy_array[-1] / elementary_charge, s=50, c='black')
+            axes[3].scatter(psi_array[0] / np.pi, Kperp_energy_array[0] / elementary_charge, s=50, c='black', marker='o')
+            axes[3].scatter(psi_array[-1] / np.pi, Kperp_energy_array[-1] / elementary_charge, s=50, c='black', marker='D')
 
             axes[4].scatter(psi_array / np.pi, Kpara_energy_array / elementary_charge, c=color_target_array, cmap=cmap_color, vmin=vmin, vmax=vmax, alpha=0.3, s=1)
-            axes[4].scatter(psi_array[0] / np.pi, Kpara_energy_array[0] / elementary_charge, s=50, c='black')
-            axes[4].scatter(psi_array[-1] / np.pi, Kpara_energy_array[-1] / elementary_charge, s=50, c='black')
+            axes[4].scatter(psi_array[0] / np.pi, Kpara_energy_array[0] / elementary_charge, s=50, c='black', marker='o')
+            axes[4].scatter(psi_array[-1] / np.pi, Kpara_energy_array[-1] / elementary_charge, s=50, c='black', marker='D')
 
             axes[5].scatter(psi_array / np.pi, d_Ktotal_d_t_array / elementary_charge, c=color_target_array, cmap=cmap_color, vmin=vmin, vmax=vmax, alpha=0.3, s=1)
-            axes[5].scatter(psi_array[0] / np.pi, d_Ktotal_d_t_array[0] / elementary_charge, s=50, c='black')
-            axes[5].scatter(psi_array[-1] / np.pi, d_Ktotal_d_t_array[-1] / elementary_charge, s=50, c='black')
+            axes[5].scatter(psi_array[0] / np.pi, d_Ktotal_d_t_array[0] / elementary_charge, s=50, c='black', marker='o')
+            axes[5].scatter(psi_array[-1] / np.pi, d_Ktotal_d_t_array[-1] / elementary_charge, s=50, c='black', marker='D')
 
             axes[6].scatter(psi_array / np.pi, trapping_frequency_array, c=color_target_array, cmap=cmap_color, vmin=vmin, vmax=vmax, alpha=0.3, s=1)
-            axes[6].scatter(psi_array[0] / np.pi, trapping_frequency_array[0], s=50, c='black')
-            axes[6].scatter(psi_array[-1] / np.pi, trapping_frequency_array[-1], s=50, c='black')
+            axes[6].scatter(psi_array[0] / np.pi, trapping_frequency_array[0], s=50, c='black', marker='o')
+            axes[6].scatter(psi_array[-1] / np.pi, trapping_frequency_array[-1], s=50, c='black', marker='D')
 
             axes[7].scatter(psi_array / np.pi, S_value_array, c=color_target_array, cmap=cmap_color, vmin=vmin, vmax=vmax, alpha=0.3, s=1)
-            axes[7].scatter(psi_array[0] / np.pi, S_value_array[0], s=50, c='black')
-            axes[7].scatter(psi_array[-1] / np.pi, S_value_array[-1], s=50, c='black')
+            axes[7].scatter(psi_array[0] / np.pi, S_value_array[0], s=50, c='black', marker='o')
+            axes[7].scatter(psi_array[-1] / np.pi, S_value_array[-1], s=50, c='black', marker='D')
 
             axes[8].scatter(psi_array / np.pi, theta_array / 2E0 / trapping_frequency_array, c=color_target_array, cmap=cmap_color, vmin=vmin, vmax=vmax, alpha=0.3, s=1)
-            axes[8].scatter(psi_array[0] / np.pi, theta_array[0] / 2E0 / trapping_frequency_array[0], s=50, c='black')
-            axes[8].scatter(psi_array[-1] / np.pi, theta_array[-1] / 2E0 / trapping_frequency_array[-1], s=50, c='black')
+            axes[8].scatter(psi_array[0] / np.pi, theta_array[0] / 2E0 / trapping_frequency_array[0], s=50, c='black', marker='o')
+            axes[8].scatter(psi_array[-1] / np.pi, theta_array[-1] / 2E0 / trapping_frequency_array[-1], s=50, c='black', marker='D')
 
             axes[9].scatter(psi_array / np.pi, mlat_rad_array * 180E0 / np.pi, c=color_target_array, cmap=cmap_color, vmin=vmin, vmax=vmax, alpha=0.3, s=1)
-            axes[9].scatter(psi_array[0] / np.pi, mlat_rad_array[0] * 180E0 / np.pi, s=50, c='black')
-            axes[9].scatter(psi_array[-1] / np.pi, mlat_rad_array[-1] * 180E0 / np.pi, s=50, c='black')
+            axes[9].scatter(psi_array[0] / np.pi, mlat_rad_array[0] * 180E0 / np.pi, s=50, c='black', marker='o')
+            axes[9].scatter(psi_array[-1] / np.pi, mlat_rad_array[-1] * 180E0 / np.pi, s=50, c='black', marker='D')
         
-    axes[0].plot(mlat_deg_for_background, energy_wave_phase_speed_eV, c='red', linewidth=4, label=r'$K_{\mathrm{ph \parallel}}$', alpha=0.6)
-    axes[0].plot(mlat_deg_for_background, energy_wave_potential_eV, c='green', linewidth=4, label=r'$K_{\mathrm{E}}$', alpha=0.6)
-    axes[0].plot(mlat_deg_for_background, energy_S_1_upper_limit_eV, c='blue', linewidth=4, label=r'$S = 1$ range', alpha=0.6)
-    axes[0].plot(mlat_deg_for_background, energy_S_1_lower_limit_eV, c='blue', linewidth=4, alpha=0.6)
-    if index == 1 or index == 2:
-        axes[0].plot(mlat_deg_for_background, energy_perp_for_background_eV, c='orange', linewidth=4, label=r'$K_{\perp}$', alpha=0.6)
+    #axes[0].plot(mlat_deg_for_background, energy_wave_phase_speed_eV, c='red', linewidth=4, label=r'$K_{\mathrm{ph \parallel}}$', alpha=0.6)
+    #axes[0].plot(mlat_deg_for_background, energy_wave_potential_eV, c='green', linewidth=4, label=r'$K_{\mathrm{E}}$', alpha=0.6)
+    #axes[0].plot(mlat_deg_for_background, energy_S_1_upper_limit_eV, c='blue', linewidth=4, label=r'$S = 1$ range', alpha=0.6)
+    #axes[0].plot(mlat_deg_for_background, energy_S_1_lower_limit_eV, c='blue', linewidth=4, alpha=0.6)
+    #if index == 1 or index == 2:
+    #    axes[0].plot(mlat_deg_for_background, energy_perp_for_background_eV, c='orange', linewidth=4, label=r'$K_{\perp}$', alpha=0.6)
+
+    xlim_enlarged_0 = axes[0].get_xlim()
+    ylim_enlarged_0 = axes[0].get_ylim()
+    Vph_para_for_background = wave_phase_speed(mlat_rad_for_background)
+    axes[0].plot(mlat_deg_for_background, Vph_para_for_background / speed_of_light, c='red', linewidth=4, label=r'$V_{\mathrm{ph \parallel}}$', alpha=0.6)
+    axes[0].set_xlim(xlim_enlarged_0)
+    axes[0].set_ylim(ylim_enlarged_0)
 
     xlim_enlarged = axes[1].get_xlim()
     ylim_enlarged = axes[1].get_ylim()
@@ -481,4 +503,9 @@ for index in range(3):
     dir_name = f'/mnt/j/KAW_simulation_data/single_test_particle/keisan/test_particle_simulation_detrapped_phase/'
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
-    fig.savefig(dir_name + f'figure_{figure_name_suffix[index]}_end_psi_{(psi_end/np.pi):.2f}_pi.png')
+    fig.savefig(dir_name + f'figure_{figure_name_suffix[index]}_end_psi_{(psi_end/np.pi):.2f}_pi_1000eV_theta_omega.png')
+    fig.savefig(dir_name + f'figure_{figure_name_suffix[index]}_end_psi_{(psi_end/np.pi):.2f}_pi_1000eV_theta_omega.pdf')
+
+    #plt.show()
+    #plt.show()のウィンドウを閉じると次のコードが実行される
+    #plt.close()
