@@ -5,6 +5,7 @@ import matplotlib.cm as cm
 import datetime
 import os
 from multiprocessing import Pool
+import tqdm
 
 mpl.rcParams['text.usetex'] = True
 mpl.rcParams['font.family'] = 'serif'
@@ -118,7 +119,8 @@ def vpara_to_Kpara(vpara):
 
 
 # initial value
-mlat_deg_array = np.linspace(0.01E0, 50E0, 5000)
+mlat_deg_array = np.linspace(0.01E0, 45E0, 1000)
+mlat_deg_array = np.append(mlat_deg_array, np.linspace(45E0, 46E0, 5000))
 mlat_rad_array = mlat_deg_array * np.pi / 180E0
 
 diff_S = 1E-6
@@ -200,6 +202,7 @@ Kpara_s_minus_min_array = np.zeros_like(mlat_rad_array)
 if __name__ == '__main__':
     
     num_process = os.cpu_count()
+    pool = Pool(num_process)
 
     args = []
     for count_mlat in range(len(mlat_rad_array)):
@@ -268,9 +271,9 @@ for count_mlat in range(len(mlat_rad_array)):
         vpara_s_minus_array[count_mlat] = np.nan
 
 fig = plt.figure(figsize=(20, 30), dpi=100)
-fig.suptitle(r'$\mu = 0, \psi = \psi_{\mathrm{s}}$')
+fig.suptitle(r'$\mu_{\mathrm{s} \pm} = 0$')
 
-ax_1 = fig.add_subplot(211, xlabel=r'MLAT $\lambda$ [deg]', ylabel=r'$v_{\parallel}$ [$c$]', xlim=(0E0, 50))
+ax_1 = fig.add_subplot(311, xlabel=r'MLAT $\lambda$ [deg]', ylabel=r'$v_{\parallel}$ [$c$]', xlim=(0E0, 46))
 
 ax_1.fill_between(mlat_deg_array, wave_phase_speed_array / speed_of_light, vpara_s_plus_max_array / speed_of_light, facecolor='yellow', alpha=0.2)
 ax_1.fill_between(mlat_deg_array, vpara_s_minus_min_array / speed_of_light, vpara_s_minus_array / speed_of_light, facecolor='aqua', alpha=0.2)
@@ -284,44 +287,46 @@ ax_1.plot(mlat_deg_array, wave_phase_speed_array / speed_of_light, c='r', linewi
 ax_1.hlines(0E0, 0E0, mlat_upper_limit_deg, color='k', linewidth=4, alpha=0.3)
 ax_1.set_ylim(ax_1_ylim)
 
-ax_1.legend()
+ax_1.legend(loc='lower center')
 ax_1.minorticks_on()
 ax_1.grid(which='both', alpha=0.3)
 
-ax_2 = fig.add_subplot(212, xlabel=r'MLAT $\lambda$ [deg]', ylabel=r'$K_{\parallel}$ [eV]', xlim=(0E0, 50), ylim=(1E1, 1E5), yscale='log')
+ax_2 = fig.add_subplot(312, xlabel=r'MLAT $\lambda$ [deg]', ylabel=r'$S_{\mathrm{s} \pm \mathrm{max, min}}$', xlim=(0E0, 46), ylim=(1E-2, 1.1E0), yscale='log')
 
-ax_2.fill_between(mlat_deg_array, Kpara_s_plus_max_array, Kpara_s_plus_min_array, facecolor='plum', alpha=0.2)
-ax_2.fill_between(mlat_deg_array, Kpara_s_minus_max_array, Kpara_s_minus_min_array, facecolor='cornflowerblue', alpha=0.2)
-
-ax_2.plot(mlat_deg_array, Kpara_s_plus_max_array, c='deeppink', linewidth=4, label=r'$K_{\parallel \mathrm{lim} (v_{\parallel}>0)}$', alpha=0.6)
-ax_2.plot(mlat_deg_array, Kpara_s_plus_min_array, c='deeppink', linewidth=4, alpha=0.6)
-ax_2.plot(mlat_deg_array, Kpara_s_minus_max_array, c='blue', linewidth=4, label=r'$K_{\parallel \mathrm{lim} (v_{\parallel}<0)}$', alpha=0.6)
-ax_2.plot(mlat_deg_array, Kpara_s_minus_min_array, c='blue', linewidth=4, alpha=0.6)
-
-ax_2.plot(mlat_deg_array, energy_wave_phase_speed_eV_array, c='r', linewidth=4, label=r'$K_{\mathrm{ph} \parallel}$', alpha=0.6)
-ax_2.plot(mlat_deg_array, energy_wave_potential_eV_array, c='green', linewidth=4, label=r'$K_{\mathrm{E}}$', alpha=0.6)
+ax_2.plot(mlat_deg_array, S_value_plus_min_array, c='orange', linewidth=4, label=r'$S_{\mathrm{s} + \mathrm{min}}$', alpha=0.6)
+ax_2.plot(mlat_deg_array, S_value_minus_max_array, c='green', linewidth=4, label=r'$S_{\mathrm{s} - \mathrm{max}}$', alpha=0.6)
+ax_2.plot(mlat_deg_array, S_value_minus_min_array, c='dodgerblue', linewidth=4, label=r'$S_{\mathrm{s} - \mathrm{min}}$', alpha=0.6)
 
 ax_2.legend()
 ax_2.minorticks_on()
 ax_2.grid(which='both', alpha=0.3)
 
+ax_3 = fig.add_subplot(313, xlabel=r'MLAT $\lambda$ [deg]', ylabel=r'$K_{\parallel}$ [eV]', xlim=(0E0, 46), ylim=(1E1, 3E4), yscale='log')
 
+ax_3.fill_between(mlat_deg_array, Kpara_s_plus_max_array, Kpara_s_plus_min_array, facecolor='plum', alpha=0.2)
+ax_3.fill_between(mlat_deg_array, Kpara_s_minus_max_array, Kpara_s_minus_min_array, facecolor='cornflowerblue', alpha=0.2)
 
-#ax_3 = fig.add_subplot(313, xlabel=r'MLAT $\lambda$ [deg]', ylabel=r'$S$', xlim=(0E0, 50), yscale='log', ylim=(1E-3, 1.1E0))
-#
-#ax_3.plot(mlat_deg_array, S_value_plus_min_array, c='orange', linewidth=4, label=r'$S_{+ \mathrm{min}}$', alpha=0.6)
-#ax_3.plot(mlat_deg_array, S_value_minus_max_array, c='green', linewidth=4, label=r'$S_{- \mathrm{max}}$', alpha=0.6)
-#ax_3.plot(mlat_deg_array, S_value_minus_min_array, c='dodgerblue', linewidth=4, label=r'$S_{- \mathrm{min}}$', alpha=0.6)
-#
-#ax_3.legend()
-#ax_3.minorticks_on()
-#ax_3.grid(which='both', alpha=0.3)
+ax_3.plot(mlat_deg_array, Kpara_s_plus_max_array, c='deeppink', linewidth=4, label=r'$K_{\parallel \mathrm{max} (v_{\parallel}>0)}$', alpha=0.6)
+ax_3.plot(mlat_deg_array, Kpara_s_plus_min_array, c='deeppink', linewidth=4, alpha=0.6)
+ax_3.plot(mlat_deg_array, Kpara_s_minus_max_array, c='blue', linewidth=4, label=r'$K_{\parallel \mathrm{max} (v_{\parallel}<0)}$', alpha=0.6)
+ax_3.plot(mlat_deg_array, Kpara_s_minus_min_array, c='blue', linewidth=4, alpha=0.6)
 
-plt.tight_layout()
+ax_3.plot(mlat_deg_array, energy_wave_phase_speed_eV_array, c='r', linewidth=4, label=r'$K_{\mathrm{ph} \parallel}$', alpha=0.6)
+ax_3.plot(mlat_deg_array, energy_wave_potential_eV_array, c='green', linewidth=4, label=r'$K_{\mathrm{E}}$', alpha=0.6)
+
+ax_3.legend()
+ax_3.minorticks_on()
+ax_3.grid(which='both', alpha=0.3)
+
+axes = [ax_1, ax_2, ax_3]
+for ax in axes:
+    ax.text(-0.1, 1.0, '(' + chr(97 + axes.index(ax)) + ')', transform=ax.transAxes, fontsize=40)
+
+fig.tight_layout(w_pad=0.0, h_pad=0., pad=0.2)
 
 dir_path = f'/mnt/j/KAW_simulation_data/single_test_particle/keisan/energy_limit_trapping_S_not_constant'
 os.makedirs(dir_path, exist_ok=True)
-fig_path = f'{dir_path}/Earth_L_{lshell_number:.1f}'
+fig_path = f'{dir_path}/Earth_L_{lshell_number:.1f}_S'
 plt.savefig(f'{fig_path}.png')
 plt.savefig(f'{fig_path}.pdf')
 plt.close()

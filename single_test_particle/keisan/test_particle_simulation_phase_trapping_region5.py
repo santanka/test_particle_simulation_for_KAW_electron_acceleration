@@ -5,12 +5,13 @@ import matplotlib.cm as cm
 import datetime
 import os
 from multiprocessing import Pool
+from tqdm.auto import tqdm  # Ensure to import tqdm correctly
 
 mpl.rcParams['text.usetex'] = True
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.serif'] = ['Computer Modern Roman']
 mpl.rcParams['mathtext.fontset'] = 'cm'
-plt.rcParams["font.size"] = 40
+plt.rcParams["font.size"] = 55
 
 
 # constants
@@ -75,7 +76,7 @@ kperp_rhoi = 2E0 * np.pi    #[rad]
 wave_frequency = 2E0 * np.pi * 0.15    #[rad/s]
 
 def wave_phase_speed(mlat_rad):
-    return Alfven_speed(mlat_rad) * kperp_rhoi * np.sqrt((1E0 + tau(mlat_rad)) / (plasma_beta_ion(mlat_rad) * (1E0 + tau(mlat_rad)) + 2E0 * tau(mlat_rad))) * np.sign(mlat_rad)    #[m/s]
+    return Alfven_speed(mlat_rad) * kperp_rhoi * np.sqrt((1E0 + tau(mlat_rad)) / (plasma_beta_ion(mlat_rad) * (1E0 + tau(mlat_rad)) + 2E0 * tau(mlat_rad)))# * np.sign(mlat_rad)    #[m/s]
 
 def kpara(mlat_rad):
     return wave_frequency / wave_phase_speed(mlat_rad)    #[rad/m]
@@ -239,7 +240,8 @@ INITIAL_KPARA_EV = INI_K_EV * np.cos(INI_PITCH_ANGLE_RAD)**2E0 #[eV]
 
 INITIAL_MU = INITIAL_KPERP_EV * elementary_charge / magnetic_flux_density(initial_mlat_rad) #[J/T]
 INITIAL_THETA = kpara(initial_mlat_rad) * np.sqrt(2E0 * INITIAL_KPARA_EV * elementary_charge / electron_mass) - wave_frequency  #[rad/s]
-initial_psi = -5E-1 * np.pi #[rad]
+initial_psi = -8E-1 * np.pi #[rad]
+# もう一度計算を回すこと
 
 dt = 1E-3
 time_end = 2E1
@@ -446,7 +448,7 @@ def main(args):
 
     axes = [ax_1_1, ax_1_2, ax_1_3, ax_2_1, ax_2_2, ax_2_3, ax_3_1, ax_3_2, ax_3_3]
 
-    mlat_deg_for_background = np.linspace(-mlat_upper_limit_deg, mlat_upper_limit_deg, 1000)
+    mlat_deg_for_background = np.linspace(0, mlat_upper_limit_deg, 1000)
     mlat_rad_for_background = mlat_deg_for_background * np.pi / 180E0
     energy_wave_phase_speed_for_background = energy_wave_phase_speed(mlat_rad_for_background)
     energy_wave_potential_for_background = energy_wave_potential(mlat_rad_for_background)
@@ -459,6 +461,7 @@ def main(args):
     ylim_enlarged_1_2 = ax_1_2.get_ylim()
 
     ax_1_1.plot(mlat_deg_for_background, Vph_para_for_background / speed_of_light, c='r', linewidth=4E0, label=r'$V_{\mathrm{ph \parallel}}$', alpha=0.6)
+    ax_1_1.hlines(0E0, 0, mlat_upper_limit_deg, colors='k', linewidth=4E0, alpha=0.3)
 
     ax_1_2.plot(mlat_deg_for_background, energy_wave_phase_speed_for_background / elementary_charge, c='r', linewidth=4E0, label=r'$K_{\mathrm{ph \parallel}}$', alpha=0.6)
     ax_1_2.plot(mlat_deg_for_background, energy_wave_potential_for_background / elementary_charge * np.ones(len(mlat_deg_for_background)), c='g', linewidth=4E0, label=r'$K_{\mathrm{E}}$', alpha=0.6)
@@ -473,10 +476,7 @@ def main(args):
         ax.minorticks_on()
         ax.grid(which='both', alpha=0.3)
         #各図に(a)、(b)、(c)、(d)をつける
-        ax.text(-0.15, 1.0, '(' + chr(97 + axes.index(ax)) + ')', transform=ax.transAxes, fontsize=40)
-
-    ax_1_1.legend()
-    ax_1_2.legend()
+        ax.text(-0.20, 1.0, '(' + chr(97 + axes.index(ax)) + ')', transform=ax.transAxes)
 
     ax_1_1.legend()
     ax_1_2.legend()
@@ -488,13 +488,17 @@ def main(args):
         ylim_enlarged_1_3[1] = 3E0
     ax_1_3.set_ylim(tuple(ylim_enlarged_1_3))
 
+    ylim_enlarged_2_1 = ax_2_1.get_ylim()
+    ax_2_1.set_yticks([1E-4, 1E-3, 1E-2, 1E-1, 1E0, 1E1, 1E2, 1E3, 1E4])
+    ax_2_1.set_ylim(ylim_enlarged_2_1)
+
     #ax_2_2について
     # y=0, 1.2, 2.4に'0'の目盛りを、y=1, 2.2, 3.4に'$t_{\mathrm{max}}$'の目盛りをつける
     ax_2_2.set_yticks([0E0, 1E0, 1.2, 2.2, 2.4, 3.4])
     ax_2_2.set_yticklabels([r'$0$', r'$t_{\mathrm{max}}$', r'$0$', r'$t_{\mathrm{max}}$', r'$0$', r'$t_{\mathrm{max}}$'])
-    ax_2_2.text(0.99, 0.01, 'Phase trapping', transform=ax_2_2.transAxes, fontsize=35, va='baseline', ha='right')
-    ax_2_2.text(0.99, 0.38, 'Resonant scattering', transform=ax_2_2.transAxes, fontsize=35, va='baseline', ha='right')
-    ax_2_2.text(0.99, 0.72, 'Non-resonant scattering', transform=ax_2_2.transAxes, fontsize=35, va='baseline', ha='right')
+    ax_2_2.text(0.99, 0.01, 'Phase trapping', transform=ax_2_2.transAxes, fontsize=45, va='baseline', ha='right')
+    ax_2_2.text(0.99, 0.38, 'Resonant scattering', transform=ax_2_2.transAxes, fontsize=45, va='baseline', ha='right')
+    ax_2_2.text(0.99, 0.72, 'Non-resonant scattering', transform=ax_2_2.transAxes, fontsize=45, va='baseline', ha='right')
 
     ylim_enlarged_3_3 = [np.nanmin(function_resonant_scattering_array)-0.1, np.nanmax(function_resonant_scattering_array)+0.1]
     if ylim_enlarged_3_3[0] < -7E0:
@@ -505,13 +509,13 @@ def main(args):
 
 
 
-    fig.suptitle(r'$K(t=0)$ = ' + f'{initial_K_eV_main:.1f} eV, ' + r'$\alpha(t=0)$ = ' + f'{initial_pitch_angle_deg_main:.1f} deg, ' + r'$\lambda(t=0)$ = ' + f'{initial_mlat_deg_main:.1f} deg')
+    fig.suptitle(r'$K_{\mathrm{i}} =$ ' + f'{initial_K_eV_main:.1f} eV, ' + r'$\alpha_{\mathrm{i}} =$ ' + f'{initial_pitch_angle_deg_main:.1f} deg, ' + r'$\lambda_{\mathrm{i}}$ = ' + f'{initial_mlat_deg_main:.1f} deg, ' + r'$\psi_{\mathrm{i}}$ = ' + f'{initial_psi_main/np.pi:.2f} $\pi$ rad')
 
-    fig.tight_layout()
+    fig.tight_layout(w_pad=0.3, h_pad=0.0)
 
     os.makedirs(dir_name, exist_ok=True)
     fig.savefig(f'{fig_name}.png')
-    #fig.savefig(f'{fig_name}.pdf')
+    fig.savefig(f'{fig_name}.pdf')
     plt.close()
 
 
@@ -532,6 +536,7 @@ if __name__ == '__main__':
     
     results = []
     with Pool(num_process) as pool:
-        result = pool.map(main, args)
+        for result in tqdm(pool.imap_unordered(main, args), total=len(args)):
+            results.append(result)
     
     print('finish!')

@@ -10,7 +10,7 @@ mpl.rcParams['text.usetex'] = True
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.serif'] = ['Computer Modern Roman']
 mpl.rcParams['mathtext.fontset'] = 'cm'
-plt.rcParams["font.size"] = 35
+plt.rcParams["font.size"] = 40
 
 
 # constants
@@ -129,6 +129,7 @@ ax_1.plot(mlat_deg_array, wavelength_para_array, color='orange', lw=4, label=r'$
 ax_1.plot(mlat_deg_array, wavelength_perp_array, color='green', lw=4, label=r'$\lambda_{\perp}=\rho_{\mathrm{i}}$')
 ax_1.plot(mlat_deg_array, electron_inertial_length_array, color='blue', lw=4, label=r'$d_{\mathrm{e}}$')
 ax_1.plot(mlat_deg_array, delta_scale_array, color='k', lw=4, label=r'$L$')
+#ax_1.plot(mlat_deg_array, np.ones_like(mlat_rad_array) * planet_radius, color='red', lw=4, label=r'$R_{\mathrm{E}}$')
 ax_1.legend()
 ax_1.minorticks_on()
 ax_1.grid(which='both', alpha=0.3)
@@ -142,7 +143,7 @@ ax_2.plot(mlat_deg_array, Gamma_array, color='green', lw=4, label=r'$\Gamma$')
 ax_2.plot(mlat_deg_array, kpara_L_array, color='k', lw=4, label=r'$k_{\parallel}L$')
 ax_2.plot(mlat_deg_array, kpara_over_kperp_array, color='purple', lw=4, label=r'$k_{\parallel}/k_{\perp}$')
 ax_2.plot(mlat_deg_array, wave_frequency_over_omega_i_array, color='red', lw=4, label=r'$\omega/\Omega_{\mathrm{i}}$')
-ax_2.legend()
+ax_2.legend(loc='upper right')
 ax_2.minorticks_on()
 ax_2.grid(which='both', alpha=0.3)
 ax_2.set_ylim(1E-5, 1E2)
@@ -150,8 +151,8 @@ ax_2.text(-0.15, 1.0, r'(b)', transform=ax_2.transAxes, fontsize=35)
 
 
 fig.tight_layout()
-fig_name = f'/mnt/j/KAW_simulation_data/single_test_particle/keisan/length_scale'
-fig.savefig(fig_name + '.png')
-fig.savefig(fig_name + '.pdf')
-plt.close()
-
+#fig_name = f'/mnt/j/KAW_simulation_data/single_test_particle/keisan/length_scale'
+#fig.savefig(fig_name + '.png')
+#fig.savefig(fig_name + '.pdf')
+#plt.close()
+plt.show()
