@@ -83,8 +83,7 @@ def energy_wave_potential(mlat_rad):
     return elementary_charge * wave_modified_potential(mlat_rad)    #[J]
 
 def delta(mlat_rad):
-    grad_magnetic_flux_density = (magnetic_flux_density(mlat_rad + diff_rad) - magnetic_flux_density(mlat_rad - diff_rad)) / 2E0 / diff_rad * d_mlat_d_z(mlat_rad)    #[T/m]
-    return 1E0 / kpara(mlat_rad) / magnetic_flux_density(mlat_rad) * grad_magnetic_flux_density    #[rad^-1]
+    return 3E0 / kpara(mlat_rad) / r_eq * np.sin(mlat_rad) * (3E0 + 5E0 * np.sin(mlat_rad)**2E0) / np.cos(mlat_rad)**2E0 / (1E0 + 3E0 * np.sin(mlat_rad)**2E0)**1.5E0    #[rad]
 
 def delta_2(mlat_rad):
     delta_plus = delta(mlat_rad + diff_rad) * kpara(mlat_rad + diff_rad) * magnetic_flux_density(mlat_rad + diff_rad)    #[rad]
@@ -257,14 +256,17 @@ for count in range(2):
 initial_mlat_deg_array = initial_mlat_rad_array * 180E0 / np.pi
 
 def dS_dt_W_value(S_value, theta, mlat_rad):
-    return (1E0 + Gamma(mlat_rad)) * (((1E0 + Gamma(mlat_rad)) / 2E0 - delta_2(mlat_rad) / delta(mlat_rad)**2E0) * S_value - energy_wave_phase_speed(mlat_rad) / energy_wave_potential(mlat_rad) * (Gamma(mlat_rad)**2E0 - 3E0 * Gamma(mlat_rad) + 3E0) * delta(mlat_rad) * (1E0 + theta / wave_frequency)**2E0)    #[]
+    return (((1E0 + Gamma(mlat_rad)) / 2E0 - delta_2(mlat_rad) / delta(mlat_rad)**2E0) * S_value - energy_wave_phase_speed(mlat_rad) / energy_wave_potential(mlat_rad) * ((Gamma(mlat_rad))**2E0 - 3E0 * Gamma(mlat_rad) + 3E0) * delta(mlat_rad) * (1E0 + theta / wave_frequency)**2E0) / (1E0 + Gamma(mlat_rad))   #[]
+
+def df_dt(psi, capital_theta, S_value, mlat_rad):
+    return - trapping_frequency(mlat_rad) * (capital_theta + np.sqrt(energy_wave_phase_speed(mlat_rad) / 2E0 / energy_wave_potential(mlat_rad))) * (1E0 + Gamma(mlat_rad)) * delta(mlat_rad) * ((np.sin(psi) + dS_dt_W_value(S_value, 2E0*trapping_frequency(mlat_rad)*capital_theta, mlat_rad)) * (psi + np.pi - np.arcsin(S_value)) - 2E0 * capital_theta**2E0)
 
 def theta_check(S_value, capital_theta, psi, mlat_rad):
     if mlat_rad != mlat_rad:
         return np.nan
     theta = capital_theta * 2E0 * trapping_frequency(mlat_rad) #[rad/s]
-    check_function = (np.cos(psi) + np.sqrt(1E0 - S_value**2E0) + (psi + np.pi - np.arcsin(S_value)) * (np.sin(psi) + dS_dt_W_value(S_value, capital_theta, mlat_rad) - S_value)) * (theta + wave_frequency) * (1E0 + Gamma(mlat_rad)) * delta(mlat_rad)
-    if check_function <= 0E0:
+    check_function = df_dt(psi, capital_theta, S_value, mlat_rad)
+    if check_function > 0E0:
         return theta
     else:
         return np.nan

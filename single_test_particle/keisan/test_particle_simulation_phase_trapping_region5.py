@@ -93,8 +93,7 @@ def energy_wave_potential(mlat_rad):
     return elementary_charge * wave_modified_potential(mlat_rad)    #[J]
 
 def delta(mlat_rad):
-    grad_magnetic_flux_density = (magnetic_flux_density(mlat_rad + diff_rad) - magnetic_flux_density(mlat_rad - diff_rad)) / 2E0 / diff_rad * d_mlat_d_z(mlat_rad)    #[T/m]
-    return 1E0 / kpara(mlat_rad) / magnetic_flux_density(mlat_rad) * grad_magnetic_flux_density    #[rad^-1]
+    return 3E0 / kpara(mlat_rad) / r_eq * np.sin(mlat_rad) * (3E0 + 5E0 * np.sin(mlat_rad)**2E0) / np.cos(mlat_rad)**2E0 / (1E0 + 3E0 * np.sin(mlat_rad)**2E0)**1.5E0    #[rad]
 
 def Gamma(mlat_rad):
     return 1E0 + 2E0 * plasma_beta_ion(mlat_rad) * (1E0 + tau(mlat_rad)) / (plasma_beta_ion(mlat_rad) * (1E0 + tau(mlat_rad)) + 2E0 * tau(mlat_rad))    #[]
@@ -241,7 +240,6 @@ INITIAL_KPARA_EV = INI_K_EV * np.cos(INI_PITCH_ANGLE_RAD)**2E0 #[eV]
 INITIAL_MU = INITIAL_KPERP_EV * elementary_charge / magnetic_flux_density(initial_mlat_rad) #[J/T]
 INITIAL_THETA = kpara(initial_mlat_rad) * np.sqrt(2E0 * INITIAL_KPARA_EV * elementary_charge / electron_mass) - wave_frequency  #[rad/s]
 initial_psi = -8E-1 * np.pi #[rad]
-# もう一度計算を回すこと
 
 dt = 1E-3
 time_end = 2E1
@@ -389,13 +387,13 @@ def main(args):
 
     ax_1_1 = fig.add_subplot(gs[0, 0], xlabel=r'MLAT $\lambda$ [deg]', ylabel=r'$v_{\parallel}$ [$c$]')
     ax_1_2 = fig.add_subplot(gs[1, 0], xlabel=r'MLAT $\lambda$ [deg]', ylabel=r'Kinetic energy $K$ [eV]', yscale='log')
-    ax_1_3 = fig.add_subplot(gs[2, 0], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\theta / 2 \omega_{\mathrm{t}}$', xlim=[-1, 1])
+    ax_1_3 = fig.add_subplot(gs[2, 0], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\Theta$', xlim=[-1, 1])
     ax_2_1 = fig.add_subplot(gs[0, 1], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$S$', yscale='log', xlim=[-1, 1])
     ax_2_2 = fig.add_subplot(gs[1, 1], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'Time $t$ [s]', xlim=[-1, 1], ylim=[-0.1, 3.5])
     ax_2_3 = fig.add_subplot(gs[2, 1], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'MLAT $\lambda$ [deg]', xlim=[-1, 1])
-    ax_3_1 = fig.add_subplot(gs[0, 2], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\psi_{\mathrm{u}}$, $\psi_{\mathrm{o}}$ [$\pi$ rad]', xlim=[-1, 1], ylim=[-1.05, 1.05])
-    ax_3_2 = fig.add_subplot(gs[1, 2], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$f(S, \psi, \theta, \lambda)$', xlim=[-1, 1])
-    ax_3_3 = fig.add_subplot(gs[2, 2], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$g(S, \psi, \theta, \lambda)$', xlim=[-1, 1])
+    ax_3_1 = fig.add_subplot(gs[0, 2], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\psi_{\mathrm{u}}$, $\psi_{\mathrm{n}}$ [$\pi$ rad]', xlim=[-1, 1], ylim=[-1.05, 1.05])
+    ax_3_2 = fig.add_subplot(gs[1, 2], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$f(S, \psi, \Theta)$', xlim=[-1, 1])
+    ax_3_3 = fig.add_subplot(gs[2, 2], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$g(S, \psi, \Theta)$', xlim=[-1, 1])
 
     ax_1_1.scatter(mlat_rad_array * 180E0 / np.pi, vpara_array / speed_of_light, c=color_target, cmap=cmap_color, s=1E0, vmin=vmin, vmax=vmax)
     ax_1_1.scatter(mlat_rad_array[0] * 180E0 / np.pi, vpara_array[0] / speed_of_light, c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
@@ -496,9 +494,9 @@ def main(args):
     # y=0, 1.2, 2.4に'0'の目盛りを、y=1, 2.2, 3.4に'$t_{\mathrm{max}}$'の目盛りをつける
     ax_2_2.set_yticks([0E0, 1E0, 1.2, 2.2, 2.4, 3.4])
     ax_2_2.set_yticklabels([r'$0$', r'$t_{\mathrm{max}}$', r'$0$', r'$t_{\mathrm{max}}$', r'$0$', r'$t_{\mathrm{max}}$'])
-    ax_2_2.text(0.99, 0.01, 'Phase trapping', transform=ax_2_2.transAxes, fontsize=45, va='baseline', ha='right')
-    ax_2_2.text(0.99, 0.38, 'Resonant scattering', transform=ax_2_2.transAxes, fontsize=45, va='baseline', ha='right')
-    ax_2_2.text(0.99, 0.72, 'Non-resonant scattering', transform=ax_2_2.transAxes, fontsize=45, va='baseline', ha='right')
+    ax_2_2.text(0.99, 0.01, 'Phase-trapped', transform=ax_2_2.transAxes, fontsize=45, va='baseline', ha='right')
+    ax_2_2.text(0.99, 0.38, 'Resonant-scattered', transform=ax_2_2.transAxes, fontsize=45, va='baseline', ha='right')
+    ax_2_2.text(0.99, 0.72, 'Non-resonant-scattered', transform=ax_2_2.transAxes, fontsize=45, va='baseline', ha='right')
 
     ylim_enlarged_3_3 = [np.nanmin(function_resonant_scattering_array)-0.1, np.nanmax(function_resonant_scattering_array)+0.1]
     if ylim_enlarged_3_3[0] < -7E0:

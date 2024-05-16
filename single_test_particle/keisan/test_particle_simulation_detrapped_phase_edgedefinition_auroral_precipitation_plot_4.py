@@ -176,6 +176,50 @@ for count_i in range(data_initial_Kperp_eq_unique_number):
         K_E_initial_separated[count_i, count_j] = data_initial_energy_eV_separated[count_i, count_j] - energy_wave_potential(data_initial_mlat_rad_separated[count_i, count_j])
 
 
+fig = plt.figure(figsize=(22.5, 15), dpi=100)
+gs = fig.add_gridspec(2, 1, height_ratios=[1, 0.05])
+
+cmap_color = cm.turbo
+
+color_target = data_energy_ionospheric_end_eV   # [eV]
+vmin = np.min(color_target)
+vmax = np.max(color_target)
+norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+sm = plt.cm.ScalarMappable(cmap=cmap_color, norm=norm)
+sm.set_array([])
+cbarax = fig.add_subplot(gs[1, :])
+cbar = plt.colorbar(sm, cax=cbarax, orientation='horizontal')
+cbar.set_label(r'$K (\lambda = \lambda_{\mathrm{iono}})$ [$\mathrm{eV}$]')
+
+ax = fig.add_subplot(gs[0, 0], title=r'$K_{\perp} (\lambda = 0) =$ '+f'{data_initial_Kperp_eq_unique[-9]:.0f} eV', xlabel=r'MLAT $\lambda_{\mathrm{i}}$ [deg]', ylabel=r'$K_{\mathrm{i}}$ [eV]')
+ax.scatter(data_initial_mlat_rad_separated[-9, :] / np.pi * 180E0, data_initial_energy_eV_separated[-9, :], s=200, alpha=0.8, color='white', zorder=1)
+ax.scatter(data_initial_mlat_rad_separated[-9, :] / np.pi * 180E0, data_initial_energy_eV_separated[-9, :], c=color_target, cmap=cmap_color, s=200, vmin=vmin, vmax=vmax, alpha=0.8, zorder=10)
+ax.minorticks_on()
+ax.grid(which='both', alpha=0.3)
+
+xlim_ax = ax.get_xlim()
+ylim_ax = ax.get_ylim()
+if ylim_ax[0] > 0:
+    ylim_ax = (0, ylim_ax[1])
+
+mlat_deg_array = np.linspace(1E0, 70E0, 10000)
+mlat_rad_array = mlat_deg_array / 180E0 * np.pi
+Kperp_eV_array = 1E0  / B0_eq * magnetic_flux_density(mlat_rad_array)
+Kpara_Vph_eV_array = electron_mass / 2E0 * wave_phase_speed(mlat_rad_array)**2E0 / elementary_charge
+ax.plot(mlat_deg_array, Kperp_eV_array + Kpara_Vph_eV_array, color='k', lw=2, alpha=0.5, label=r'$K_{\perp} + K_{\mathrm{ph} \parallel}$')
+
+ax.set_xlim(xlim_ax)
+ax.set_ylim(ylim_ax)
+
+ax.legend(loc='upper right')
+
+fig.tight_layout()
+plt.savefig(f'{dir_name}/{figure_name.replace(".png", "_MLAT_1eV.png")}')
+plt.savefig(f'{dir_name}/{figure_name.replace(".png", "_MLAT_1eV.pdf")}')
+
+quit()
+
+
 fig = plt.figure(figsize=(30, 40), dpi=100)
 gs = fig.add_gridspec(6, 2, height_ratios=[1, 1, 1, 1, 1, 0.1])
 
@@ -190,6 +234,8 @@ sm.set_array([])
 cbarax = fig.add_subplot(gs[5, :])
 cbar = plt.colorbar(sm, cax=cbarax, orientation='horizontal')
 cbar.set_label(r'$K (\lambda = \lambda_{\mathrm{iono}})$ [$\mathrm{eV}$]')
+
+print(vmax, vmin)
 
 ax_1_1 = fig.add_subplot(gs[0, 0], title=r'$K_{\perp} (\lambda = 0) =$ '+f'{data_initial_Kperp_eq_unique[-1]:.0f} eV', xlabel=r'$\psi_{\mathrm{i}}$ [$\pi$ rad]', ylabel=r'$\Theta_{\mathrm{i}}$')
 ax_1_2 = fig.add_subplot(gs[1, 0], title=r'$K_{\perp} (\lambda = 0) =$ '+f'{data_initial_Kperp_eq_unique[-3]:.0f} eV', xlabel=r'$\psi_{\mathrm{i}}$ [$\pi$ rad]', ylabel=r'$\Theta_{\mathrm{i}}$')

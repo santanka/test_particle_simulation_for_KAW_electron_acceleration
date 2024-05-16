@@ -69,7 +69,7 @@ def Alfven_speed(mlat_rad):
 def plasma_beta_ion(mlat_rad):
     return 2E0 * magnetic_constant * number_density(mlat_rad) * ion_temperature(mlat_rad) * elementary_charge / magnetic_flux_density(mlat_rad)**2E0  #[]
 
-diff_rad = 1E-6 #[rad]
+diff_rad = 1E-8 #[rad]
 
 # wave parameters
 kperp_rhoi = 2E0 * np.pi    #[rad]
@@ -93,13 +93,12 @@ def energy_wave_potential(mlat_rad):
     return elementary_charge * wave_modified_potential(mlat_rad)    #[J]
 
 def delta(mlat_rad):
-    grad_magnetic_flux_density = (magnetic_flux_density(mlat_rad + diff_rad) - magnetic_flux_density(mlat_rad - diff_rad)) / 2E0 / diff_rad * d_mlat_d_z(mlat_rad)    #[T/m]
-    return 1E0 / kpara(mlat_rad) / magnetic_flux_density(mlat_rad) * grad_magnetic_flux_density    #[rad^-1]
+    return 3E0 / kpara(mlat_rad) / r_eq * np.sin(mlat_rad) * (3E0 + 5E0 * np.sin(mlat_rad)**2E0) / np.cos(mlat_rad)**2E0 / (1E0 + 3E0 * np.sin(mlat_rad)**2E0)**1.5E0    #[rad]
 
 def delta_2(mlat_rad):
     delta_plus = delta(mlat_rad + diff_rad) * kpara(mlat_rad + diff_rad) * magnetic_flux_density(mlat_rad + diff_rad)    #[rad]
     delta_minus = delta(mlat_rad - diff_rad) * kpara(mlat_rad - diff_rad) * magnetic_flux_density(mlat_rad - diff_rad)    #[rad]
-    return (delta_plus - delta_minus) / 2E0 / diff_rad / kpara(mlat_rad)**2E0 / magnetic_flux_density(mlat_rad)    #[rad^-1]
+    return (delta_plus - delta_minus) / 2E0 / diff_rad / kpara(mlat_rad)**2E0 / magnetic_flux_density(mlat_rad) * d_mlat_d_z(mlat_rad)    #[rad^-2]
 
 def Gamma(mlat_rad):
     return 1E0 + 2E0 * plasma_beta_ion(mlat_rad) * (1E0 + tau(mlat_rad)) / (plasma_beta_ion(mlat_rad) * (1E0 + tau(mlat_rad)) + 2E0 * tau(mlat_rad))    #[]
@@ -262,14 +261,30 @@ for count in range(2):
 initial_mlat_deg_array = initial_mlat_rad_array * 180E0 / np.pi
 
 def dS_dt_W_value(S_value, theta, mlat_rad):
-    return (1E0 + Gamma(mlat_rad)) * (((1E0 + Gamma(mlat_rad)) / 2E0 - delta_2(mlat_rad) / delta(mlat_rad)**2E0) * S_value - energy_wave_phase_speed(mlat_rad) / energy_wave_potential(mlat_rad) * (Gamma(mlat_rad)**2E0 - 3E0 * Gamma(mlat_rad) + 3E0) * delta(mlat_rad) * (1E0 + theta / wave_frequency)**2E0)    #[]
+    return (((1E0 + Gamma(mlat_rad)) / 2E0 - delta_2(mlat_rad) / delta(mlat_rad)**2E0) * S_value - energy_wave_phase_speed(mlat_rad) / energy_wave_potential(mlat_rad) * ((Gamma(mlat_rad))**2E0 - 3E0 * Gamma(mlat_rad) + 3E0) * delta(mlat_rad) * (1E0 + theta / wave_frequency)**2E0) / (1E0 + Gamma(mlat_rad))   #[]
+
+def dS_dt_W_1_value(mu, capital_theta, mlat_rad):
+    return ((capital_theta + np.sqrt(energy_wave_phase_speed(mlat_rad) / 2E0 / energy_wave_potential(mlat_rad)))**2E0 * (Gamma(mlat_rad) - 1E0) * (5E0 - 3E0 * Gamma(mlat_rad)) / (1E0 + Gamma(mlat_rad)) + 5E-1 * magnetic_flux_density(mlat_rad) * mu / energy_wave_potential(mlat_rad)) * delta(mlat_rad)
+
+def dS_dt_W_2_value(mu, capital_theta, mlat_rad):
+    return - (2E0 * (capital_theta + np.sqrt(energy_wave_phase_speed(mlat_rad) / 2E0 / energy_wave_potential(mlat_rad)))**2E0 + magnetic_flux_density(mlat_rad) * mu / energy_wave_potential(mlat_rad) / (1E0 + Gamma(mlat_rad))) * delta_2(mlat_rad) / delta(mlat_rad)
+
+def dS_dt_mu(psi, mu, capital_theta, mlat_rad):
+    return - 2E0 * trapping_frequency(mlat_rad) * (capital_theta + np.sqrt(energy_wave_phase_speed(mlat_rad) / 2E0 / energy_wave_potential(mlat_rad))) * (1E0 + Gamma(mlat_rad)) * delta(mlat_rad) * (np.sin(psi) + dS_dt_W_1_value(mu, capital_theta, mlat_rad) + dS_dt_W_2_value(mu, capital_theta, mlat_rad))    #[]
+
+
+def dS_dt(psi, S_value, theta, mlat_rad):
+    return - (theta + wave_frequency) * (1E0 + Gamma(mlat_rad)) * delta(mlat_rad) * ((np.sin(psi) + dS_dt_W_value(S_value, theta, mlat_rad)))    #[]
+
+def df_dt(psi, capital_theta, S_value, mlat_rad):
+    return - trapping_frequency(mlat_rad) * (capital_theta + np.sqrt(energy_wave_phase_speed(mlat_rad) / 2E0 / energy_wave_potential(mlat_rad))) * (1E0 + Gamma(mlat_rad)) * delta(mlat_rad) * ((np.sin(psi) + dS_dt_W_value(S_value, 2E0*trapping_frequency(mlat_rad)*capital_theta, mlat_rad)) * (psi + np.pi - np.arcsin(S_value)) - 2E0 * capital_theta**2E0)
 
 def theta_check(S_value, capital_theta, psi, mlat_rad):
     if mlat_rad != mlat_rad:
         return np.nan
     theta = capital_theta * 2E0 * trapping_frequency(mlat_rad) #[rad/s]
-    check_function = (np.cos(psi) + np.sqrt(1E0 - S_value**2E0) + (psi + np.pi - np.arcsin(S_value)) * (np.sin(psi) + dS_dt_W_value(S_value, capital_theta, mlat_rad) - S_value)) * (theta + wave_frequency) * (1E0 + Gamma(mlat_rad)) * delta(mlat_rad)
-    if check_function <= 0E0:
+    check_function = df_dt(psi, capital_theta, S_value, mlat_rad)
+    if check_function > 0E0:
         return theta
     else:
         return np.nan
@@ -300,7 +315,9 @@ for count_i in range(Kperp_S_value_grid_number):
 
 # runge-kutta method
 def S_value_for_TPS(mu, theta, mlat_rad):
-    return energy_wave_phase_speed(mlat_rad) / energy_wave_potential(mlat_rad) * (1E0 + Gamma(mlat_rad)) * delta(mlat_rad) * (1E0 + theta / wave_frequency)**2E0 + magnetic_flux_density(mlat_rad) * mu / energy_wave_potential(mlat_rad) * delta(mlat_rad)    #[]
+    capital_theta = theta / trapping_frequency(mlat_rad) / 2E0
+    return (2E0 * (1E0 + Gamma(mlat_rad)) * (capital_theta + np.sqrt(energy_wave_phase_speed(mlat_rad) / 2E0 / energy_wave_potential(mlat_rad)))**2E0 + magnetic_flux_density(mlat_rad) * mu / energy_wave_potential(mlat_rad)) * delta(mlat_rad)    #[]
+    #return energy_wave_phase_speed(mlat_rad) / energy_wave_potential(mlat_rad) * (1E0 + Gamma(mlat_rad)) * delta(mlat_rad) * (1E0 + theta / wave_frequency)**2E0 + magnetic_flux_density(mlat_rad) * mu / energy_wave_potential(mlat_rad) * delta(mlat_rad)    #[]
 
 def d_psi_d_t(theta):
     return theta    #[rad/s]
@@ -406,9 +423,11 @@ def main(args):
             if S_new < 1E0:
                 # psi_new_modは-piからpiの範囲に収まるようにする
                 psi_new_mod = np.mod(psi_new + np.pi, 2E0 * np.pi) - np.pi
-                phase_trapping_edge_trajectory = (theta_new / trapping_frequency(mlat_new) / 2E0)**2E0 - 5E-1 * (np.cos(psi_new_mod) + np.sqrt(1E0 - S_new**2E0) - S_new * (psi_new_mod + np.pi - np.arcsin(S_new)))    #[]
-                if phase_trapping_edge_trajectory < 0E0:
-                    break
+                psi_unstable = - np.pi + np.arcsin(S_new)
+                if psi_new_mod >= psi_unstable:
+                    phase_trapping_edge_trajectory = (theta_new / trapping_frequency(mlat_new) / 2E0)**2E0 - 5E-1 * (np.cos(psi_new_mod) + np.sqrt(1E0 - S_new**2E0) - S_new * (psi_new_mod + np.pi - np.arcsin(S_new)))    #[]
+                    if phase_trapping_edge_trajectory <= 0E0:
+                        break
             if psi_new != psi_new:
                 print('Error: NaN')
                 quit()
@@ -424,6 +443,7 @@ def main(args):
     K_array_eV_RK4 = Kperp_array_eV_RK4 + Kpara_array_eV_RK4    #[eV]
     trapping_frequency_array_RK4 = trapping_frequency(mlat_rad_array_RK4)    #[rad/s]
     d_K_d_t_eV_s_array_RK4 = d_K_d_t_eV_s(theta_array_RK4, psi_array_RK4, mlat_rad_array_RK4)    #[eV/s]
+
     return mlat_rad_array_RK4, theta_array_RK4, psi_array_RK4, time_array_RK4, S_value_array_RK4, mlat_deg_array_RK4, vpara_array_RK4, Kperp_array_eV_RK4, Kpara_array_eV_RK4, K_array_eV_RK4, trapping_frequency_array_RK4, d_K_d_t_eV_s_array_RK4
 
 
@@ -459,15 +479,22 @@ for count_i in range(Kperp_S_value_grid_number):
     ax_1_1 = fig.add_subplot(gs[0:2, 0], xlabel=r'$\lambda$ [deg]', ylabel=r'$v_{\parallel}$ [$c$]')
     ax_1_2 = fig.add_subplot(gs[2:4, 0], xlabel=r'$\lambda$ [deg]', ylabel=r'$K$ [eV]', yscale='log')
     ax_2_1 = fig.add_subplot(gs[0, 1], xlabel=r'$\psi$ [$\pi$ $\mathrm{rad}$]', ylabel=r'$K$ [$\mathrm{eV}$]', yscale='log')
-    ax_2_2 = fig.add_subplot(gs[1, 1], xlabel=r'$\psi$ [$\pi$ $\mathrm{rad}$]', ylabel=r'$K_{\perp}$ [$\mathrm{eV}$]', yscale='log')
-    ax_2_3 = fig.add_subplot(gs[2, 1], xlabel=r'$\psi$ [$\pi$ $\mathrm{rad}$]', ylabel=r'$K_{\parallel}$ [$\mathrm{eV}$]', yscale='log')
+    ax_2_2 = fig.add_subplot(gs[1, 1], xlabel=r'$\psi$ [$\pi$ $\mathrm{rad}$]', ylabel=r'$\alpha$ [$\mathrm{deg}$]')
+    #ax_2_2 = fig.add_subplot(gs[1, 1], xlabel=r'$\psi$ [$\pi$ $\mathrm{rad}$]', ylabel=r'$K_{\perp}$ [$\mathrm{eV}$]', yscale='log')
+    #ax_2_3 = fig.add_subplot(gs[2, 1], xlabel=r'$\psi$ [$\pi$ $\mathrm{rad}$]', ylabel=r'$K_{\parallel}$ [$\mathrm{eV}$]', yscale='log')
+    ax_2_3 = fig.add_subplot(gs[2, 1], xlabel=r'$\psi$ [$\pi$ $\mathrm{rad}$]', ylabel=r'$\mathrm{d} K / \mathrm{d} t$ $[\mathrm{eV/s}]$')
     #ax_2_4 = fig.add_subplot(gs[3, 1], xlabel=r'$\psi$ [$\pi$ $\mathrm{rad}$]', ylabel=r'MLAT [deg]')
-    ax_2_4 = fig.add_subplot(gs[3, 1], xlabel=r'$\psi$ [$\pi$ $\mathrm{rad}$]', ylabel=r'$t$ [$\mathrm{s}$]')
-    ax_3_1 = fig.add_subplot(gs[0, 2], xlabel=r'$\psi$ [$\pi$ $\mathrm{rad}$]', ylabel=r'$\mathrm{d} K / \mathrm{d} t$ $[\mathrm{eV/s}]$')
+    ax_2_4 = fig.add_subplot(gs[3, 1], xlabel=r'$\psi$ [$\pi$ $\mathrm{rad}$]', ylabel=r'$\lambda$ [deg]')
+    #ax_2_4 = fig.add_subplot(gs[3, 1], xlabel=r'$\psi$ [$\pi$ $\mathrm{rad}$]', ylabel=r'$t$ [$\mathrm{s}$]')
+    #ax_3_1 = fig.add_subplot(gs[0, 2], xlabel=r'$\psi$ [$\pi$ $\mathrm{rad}$]', ylabel=r'$\mathrm{d} K / \mathrm{d} t$ $[\mathrm{eV/s}]$')
+    ax_3_1 = fig.add_subplot(gs[0, 2], xlabel=r'$\psi$ [$\pi$ $\mathrm{rad}$]', ylabel=r'$\Theta$')
     #ax_3_1.set_yscale('symlog', linthresh=1E2)
     ax_3_2 = fig.add_subplot(gs[1, 2], xlabel=r'$\psi$ [$\pi$ $\mathrm{rad}$]', ylabel=r'$S$', yscale='log')
-    ax_3_3 = fig.add_subplot(gs[2, 2], xlabel=r'$\psi$ [$\pi$ $\mathrm{rad}$]', ylabel=r'$\theta / 2 \omega_{\mathrm{t}}$')
-    ax_3_4 = fig.add_subplot(gs[3, 2], xlabel=r'$\psi$ [$\pi$ $\mathrm{rad}$]', ylabel=r'$\lambda$ [deg]')
+    #ax_3_3 = fig.add_subplot(gs[2, 2], xlabel=r'$\psi$ [$\pi$ $\mathrm{rad}$]', ylabel=r'$\Theta$')
+    ax_3_3 = fig.add_subplot(gs[2, 2], xlabel=r'$\psi$ [$\pi$ $\mathrm{rad}$]', ylabel=r'$\mathrm{d} S / \mathrm{d} t$ $[\mathrm{s}^{-1}]$')
+    #ax_3_4 = fig.add_subplot(gs[3, 2], xlabel=r'$\psi$ [$\pi$ $\mathrm{rad}$]', ylabel=r'$\lambda$ [deg]')
+    ax_3_4 = fig.add_subplot(gs[3, 2], xlabel=r'$\psi$ [$\pi$ $\mathrm{rad}$]', ylabel=r'$t$ [$\mathrm{s}$]')
+
 
     fig.suptitle(r'$K_{\perp}(\lambda = 0) = $' + f'{initial_Kperp_eq_main:.4f} eV, ' + r'$S_{\mathrm{i}} = $' + f'{initial_S_value_main:.4f}')
 
@@ -484,7 +511,18 @@ for count_i in range(Kperp_S_value_grid_number):
             for result in results:
                 mlat_rad_array_RK4, theta_array_RK4, psi_array_RK4, time_array_RK4, S_value_array_RK4, mlat_deg_array_RK4, vpara_array_RK4, Kperp_array_eV_RK4, Kpara_array_eV_RK4, K_array_eV_RK4, trapping_frequency_array_RK4, d_K_d_t_eV_s_array_RK4 = result
 
+                pitch_angle_array = np.arcsin(np.sqrt(Kperp_array_eV_RK4 / K_array_eV_RK4)) * np.sign(vpara_array_RK4)
+                pitch_angle_array = np.where(pitch_angle_array < 0E0, pitch_angle_array + np.pi, pitch_angle_array)
+                pitch_angle_array = pitch_angle_array * 180E0 / np.pi
+
                 initial_psi_color = psi_array_RK4[0] / np.pi * np.ones(mlat_deg_array_RK4.size)
+
+                dS_dt_array_RK4 = dS_dt_mu(psi_array_RK4, initial_mu_main, theta_array_RK4 / 2E0 / trapping_frequency_array_RK4, mlat_rad_array_RK4)
+                dS_dt_W_1_value_array_RK4 = dS_dt_W_1_value(initial_mu_main, theta_array_RK4 / 2E0 / trapping_frequency_array_RK4, mlat_rad_array_RK4)
+                dS_dt_W_2_value_array_RK4 = dS_dt_W_2_value(initial_mu_main, theta_array_RK4 / 2E0 / trapping_frequency_array_RK4, mlat_rad_array_RK4)
+                dS_dt_W_value_array_RK4 = dS_dt_W_1_value_array_RK4 + dS_dt_W_2_value_array_RK4 + np.sin(psi_array_RK4)
+
+                #dTheta_dt_array_RK4 = - trapping_frequency_array_RK4 / 2E0 * (np.sin(psi_array_RK4) + (2E0 * np.sqrt(energy_wave_phase_speed(mlat_rad_array_RK4) / 2E0 / energy_wave_potential(mlat_rad_array_RK4)) * (theta_array_RK4 / 2E0 / trapping_frequency_array_RK4 + np.sqrt(energy_wave_phase_speed(mlat_rad_array_RK4) / 2E0 / energy_wave_potential(mlat_rad_array_RK4))) * (1E0 + Gamma(mlat_rad_array_RK4)) + magnetic_flux_density(mlat_rad_array_RK4) * initial_mu_main / energy_wave_potential(mlat_rad_array_RK4)) * delta(mlat_rad_array_RK4)) 
 
 
                 ax_1_1.scatter(mlat_deg_array_RK4, vpara_array_RK4 / speed_of_light, s=1, c=initial_psi_color, cmap=cmap_color, vmin=color_vmin, vmax=color_vmax)
@@ -499,40 +537,58 @@ for count_i in range(Kperp_S_value_grid_number):
                 ax_2_1.scatter(psi_array_RK4[0] / np.pi, K_array_eV_RK4[0], c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
                 ax_2_1.scatter(psi_array_RK4[-1] / np.pi, K_array_eV_RK4[-1], c='orange', s=200, marker='D', edgecolors='k', zorder=1)
 
-                ax_2_2.scatter(psi_array_RK4 / np.pi, Kperp_array_eV_RK4, s=1, c=initial_psi_color, cmap=cmap_color, vmin=color_vmin, vmax=color_vmax)
-                ax_2_2.scatter(psi_array_RK4[0] / np.pi, Kperp_array_eV_RK4[0], c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
-                ax_2_2.scatter(psi_array_RK4[-1] / np.pi, Kperp_array_eV_RK4[-1], c='orange', s=200, marker='D', edgecolors='k', zorder=1)
+                #ax_2_2.scatter(psi_array_RK4 / np.pi, Kperp_array_eV_RK4, s=1, c=initial_psi_color, cmap=cmap_color, vmin=color_vmin, vmax=color_vmax)
+                #ax_2_2.scatter(psi_array_RK4[0] / np.pi, Kperp_array_eV_RK4[0], c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
+                #ax_2_2.scatter(psi_array_RK4[-1] / np.pi, Kperp_array_eV_RK4[-1], c='orange', s=200, marker='D', edgecolors='k', zorder=1)
+                ax_2_2.scatter(psi_array_RK4 / np.pi, pitch_angle_array, s=1, c=initial_psi_color, cmap=cmap_color, vmin=color_vmin, vmax=color_vmax)
+                ax_2_2.scatter(psi_array_RK4[0] / np.pi, pitch_angle_array[0], c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
+                ax_2_2.scatter(psi_array_RK4[-1] / np.pi, pitch_angle_array[-1], c='orange', s=200, marker='D', edgecolors='k', zorder=1)
 
-                ax_2_3.scatter(psi_array_RK4 / np.pi, Kpara_array_eV_RK4, s=1, c=initial_psi_color, cmap=cmap_color, vmin=color_vmin, vmax=color_vmax)
-                ax_2_3.scatter(psi_array_RK4[0] / np.pi, Kpara_array_eV_RK4[0], c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
-                ax_2_3.scatter(psi_array_RK4[-1] / np.pi, Kpara_array_eV_RK4[-1], c='orange', s=200, marker='D', edgecolors='k', zorder=1)
+                #ax_2_3.scatter(psi_array_RK4 / np.pi, Kpara_array_eV_RK4, s=1, c=initial_psi_color, cmap=cmap_color, vmin=color_vmin, vmax=color_vmax)
+                #ax_2_3.scatter(psi_array_RK4[0] / np.pi, Kpara_array_eV_RK4[0], c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
+                #ax_2_3.scatter(psi_array_RK4[-1] / np.pi, Kpara_array_eV_RK4[-1], c='orange', s=200, marker='D', edgecolors='k', zorder=1)
+                ax_2_3.scatter(psi_array_RK4 / np.pi, d_K_d_t_eV_s_array_RK4, s=1, c=initial_psi_color, cmap=cmap_color, vmin=color_vmin, vmax=color_vmax)
+                ax_2_3.scatter(psi_array_RK4[0] / np.pi, d_K_d_t_eV_s_array_RK4[0], c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
+                ax_2_3.scatter(psi_array_RK4[-1] / np.pi, d_K_d_t_eV_s_array_RK4[-1], c='orange', s=200, marker='D', edgecolors='k', zorder=1)
 
                 #ax_2_4.scatter(psi_array_RK4 / np.pi, mlat_deg_array_RK4, s=1, c=initial_psi_color, cmap=cmap_color, vmin=color_vmin, vmax=color_vmax)
                 #ax_2_4.scatter(psi_array_RK4[0] / np.pi, mlat_deg_array_RK4[0], c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
                 #ax_2_4.scatter(psi_array_RK4[-1] / np.pi, mlat_deg_array_RK4[-1], c='orange', s=200, marker='D', edgecolors='k', zorder=1)
-                ax_2_4.scatter(psi_array_RK4 / np.pi, time_array_RK4, s=1, c=initial_psi_color, cmap=cmap_color, vmin=color_vmin, vmax=color_vmax)
-                ax_2_4.scatter(psi_array_RK4[0] / np.pi, time_array_RK4[0], c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
-                ax_2_4.scatter(psi_array_RK4[-1] / np.pi, time_array_RK4[-1], c='orange', s=200, marker='D', edgecolors='k', zorder=1)
+                #ax_2_4.scatter(psi_array_RK4 / np.pi, time_array_RK4, s=1, c=initial_psi_color, cmap=cmap_color, vmin=color_vmin, vmax=color_vmax)
+                #ax_2_4.scatter(psi_array_RK4[0] / np.pi, time_array_RK4[0], c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
+                #ax_2_4.scatter(psi_array_RK4[-1] / np.pi, time_array_RK4[-1], c='orange', s=200, marker='D', edgecolors='k', zorder=1)
+                ax_2_4.scatter(psi_array_RK4 / np.pi, mlat_deg_array_RK4, s=1, c=initial_psi_color, cmap=cmap_color, vmin=color_vmin, vmax=color_vmax)
+                ax_2_4.scatter(psi_array_RK4[0] / np.pi, mlat_deg_array_RK4[0], c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
+                ax_2_4.scatter(psi_array_RK4[-1] / np.pi, mlat_deg_array_RK4[-1], c='orange', s=200, marker='D', edgecolors='k', zorder=1)
 
                 #ax_3_1.scatter(psi_array_RK4 / np.pi, trapping_frequency_array_RK4 / np.pi, s=1, c=initial_psi_color, cmap=cmap_color, vmin=color_vmin, vmax=color_vmax)
                 #ax_3_1.scatter(psi_array_RK4[0] / np.pi, trapping_frequency_array_RK4[0] / np.pi, c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
                 #ax_3_1.scatter(psi_array_RK4[-1] / np.pi, trapping_frequency_array_RK4[-1] / np.pi, c='orange', s=200, marker='D', edgecolors='k', zorder=1)
-                ax_3_1.scatter(psi_array_RK4 / np.pi, d_K_d_t_eV_s_array_RK4, s=1, c=initial_psi_color, cmap=cmap_color, vmin=color_vmin, vmax=color_vmax)
-                ax_3_1.scatter(psi_array_RK4[0] / np.pi, d_K_d_t_eV_s_array_RK4[0], c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
-                ax_3_1.scatter(psi_array_RK4[-1] / np.pi, d_K_d_t_eV_s_array_RK4[-1], c='orange', s=200, marker='D', edgecolors='k', zorder=1)
+                #ax_3_1.scatter(psi_array_RK4 / np.pi, d_K_d_t_eV_s_array_RK4, s=1, c=initial_psi_color, cmap=cmap_color, vmin=color_vmin, vmax=color_vmax)
+                #ax_3_1.scatter(psi_array_RK4[0] / np.pi, d_K_d_t_eV_s_array_RK4[0], c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
+                #ax_3_1.scatter(psi_array_RK4[-1] / np.pi, d_K_d_t_eV_s_array_RK4[-1], c='orange', s=200, marker='D', edgecolors='k', zorder=1)
+                ax_3_1.scatter(psi_array_RK4 / np.pi, theta_array_RK4 / trapping_frequency_array_RK4 / 2E0, s=1, c=initial_psi_color, cmap=cmap_color, vmin=color_vmin, vmax=color_vmax)
+                ax_3_1.scatter(psi_array_RK4[0] / np.pi, theta_array_RK4[0] / trapping_frequency_array_RK4[0] / 2E0, c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
+                ax_3_1.scatter(psi_array_RK4[-1] / np.pi, theta_array_RK4[-1] / trapping_frequency_array_RK4[-1] / 2E0, c='orange', s=200, marker='D', edgecolors='k', zorder=1)
 
                 ax_3_2.scatter(psi_array_RK4 / np.pi, S_value_array_RK4, s=1, c=initial_psi_color, cmap=cmap_color, vmin=color_vmin, vmax=color_vmax)
                 ax_3_2.scatter(psi_array_RK4[0] / np.pi, S_value_array_RK4[0], c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
                 ax_3_2.scatter(psi_array_RK4[-1] / np.pi, S_value_array_RK4[-1], c='orange', s=200, marker='D', edgecolors='k', zorder=1)
 
-                ax_3_3.scatter(psi_array_RK4 / np.pi, theta_array_RK4 / trapping_frequency_array_RK4 / 2E0, s=1, c=initial_psi_color, cmap=cmap_color, vmin=color_vmin, vmax=color_vmax)
-                ax_3_3.scatter(psi_array_RK4[0] / np.pi, theta_array_RK4[0] / trapping_frequency_array_RK4[0] / 2E0, c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
-                ax_3_3.scatter(psi_array_RK4[-1] / np.pi, theta_array_RK4[-1] / trapping_frequency_array_RK4[-1] / 2E0, c='orange', s=200, marker='D', edgecolors='k', zorder=1)
+                #ax_3_3.scatter(psi_array_RK4 / np.pi, theta_array_RK4 / trapping_frequency_array_RK4 / 2E0, s=1, c=initial_psi_color, cmap=cmap_color, vmin=color_vmin, vmax=color_vmax)
+                #ax_3_3.scatter(psi_array_RK4[0] / np.pi, theta_array_RK4[0] / trapping_frequency_array_RK4[0] / 2E0, c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
+                #ax_3_3.scatter(psi_array_RK4[-1] / np.pi, theta_array_RK4[-1] / trapping_frequency_array_RK4[-1] / 2E0, c='orange', s=200, marker='D', edgecolors='k', zorder=1)
+                ax_3_3.scatter(psi_array_RK4 / np.pi, dS_dt_array_RK4, s=1, c=initial_psi_color, cmap=cmap_color, vmin=color_vmin, vmax=color_vmax)
+                ax_3_3.scatter(psi_array_RK4[0] / np.pi, dS_dt_array_RK4[0], c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
+                ax_3_3.scatter(psi_array_RK4[-1] / np.pi, dS_dt_array_RK4[-1], c='orange', s=200, marker='D', edgecolors='k', zorder=1)
 
-                ax_3_4.scatter(psi_array_RK4 / np.pi, mlat_deg_array_RK4, s=1, c=initial_psi_color, cmap=cmap_color, vmin=color_vmin, vmax=color_vmax)
-                ax_3_4.scatter(psi_array_RK4[0] / np.pi, mlat_deg_array_RK4[0], c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
-                ax_3_4.scatter(psi_array_RK4[-1] / np.pi, mlat_deg_array_RK4[-1], c='orange', s=200, marker='D', edgecolors='k', zorder=1)
-    
+                #ax_3_4.scatter(psi_array_RK4 / np.pi, mlat_deg_array_RK4, s=1, c=initial_psi_color, cmap=cmap_color, vmin=color_vmin, vmax=color_vmax)
+                #ax_3_4.scatter(psi_array_RK4[0] / np.pi, mlat_deg_array_RK4[0], c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
+                #ax_3_4.scatter(psi_array_RK4[-1] / np.pi, mlat_deg_array_RK4[-1], c='orange', s=200, marker='D', edgecolors='k', zorder=1)
+                ax_3_4.scatter(psi_array_RK4 / np.pi, time_array_RK4, s=1, c=initial_psi_color, cmap=cmap_color, vmin=color_vmin, vmax=color_vmax)
+                ax_3_4.scatter(psi_array_RK4[0] / np.pi, time_array_RK4[0], c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
+                ax_3_4.scatter(psi_array_RK4[-1] / np.pi, time_array_RK4[-1], c='orange', s=200, marker='D', edgecolors='k', zorder=1)
+
     xlim_ax_1_1 = ax_1_1.get_xlim()
     ylim_ax_1_1 = ax_1_1.get_ylim()
     xlim_ax_1_2 = ax_1_2.get_xlim()
@@ -565,51 +621,72 @@ for count_i in range(Kperp_S_value_grid_number):
     ax_1_1.legend()
     ax_1_2.legend()
 
+    xlim_psi = ax_2_1.get_xlim()
+    xlim_psi_max = xlim_psi[1]
+    xlim_psi_min = xlim_psi[0]
+
     ylim_ax_2_1 = ax_2_1.get_ylim()
     ax_2_1.set_yticks([1E0, 1E1, 1E2, 1E3, 1E4])
     ax_2_1.set_ylim(ylim_ax_2_1)
 
+    #ylim_ax_2_2 = ax_2_2.get_ylim()
+    #ax_2_2.set_yticks([1E0, 1E1, 1E2, 1E3, 1E4])
+    #ax_2_2.set_ylim(ylim_ax_2_2)
+
+    #ylim_ax_2_3 = ax_2_3.get_ylim()
+    #ax_2_3.set_yticks([1E0, 1E1, 1E2, 1E3, 1E4])
+    #ax_2_3.set_ylim(ylim_ax_2_3)
+
+    xlim_ax_2_2 = ax_2_2.get_xlim()
     ylim_ax_2_2 = ax_2_2.get_ylim()
-    ax_2_2.set_yticks([1E0, 1E1, 1E2, 1E3, 1E4])
+    ax_2_2.hlines(90E0, xlim_psi_min, xlim_psi_max, color='k', linewidth=4, alpha=0.3, zorder=1)
+    ax_2_2.set_xlim(xlim_ax_2_2)
     ax_2_2.set_ylim(ylim_ax_2_2)
 
+    xlim_ax_2_3 = ax_2_3.get_xlim()
     ylim_ax_2_3 = ax_2_3.get_ylim()
-    ax_2_3.set_yticks([1E0, 1E1, 1E2, 1E3, 1E4])
+    ax_2_3.hlines(0E0, xlim_psi_min, xlim_psi_max, color='k', linewidth=4, alpha=0.3, zorder=1)
+    if ylim_ax_2_3[0] < -1E2 or ylim_ax_2_3[1] > 1E2:
+        ax_2_3.set_yscale('symlog', linthresh=1E2)
+        ylim_ax_2_3 = np.array(ylim_ax_2_3) * 1.1
+    ax_2_3.set_xlim(xlim_ax_2_3)
     ax_2_3.set_ylim(ylim_ax_2_3)
-
-    xlim_ax_3_1 = ax_3_1.get_xlim()
-    ylim_ax_3_1 = ax_3_1.get_ylim()
-    ax_3_1.hlines(0E0, -3E0, 1E0, color='k', linewidth=4, alpha=0.3, zorder=1)
-    ax_3_1.set_xlim(xlim_ax_3_1)
-    ax_3_1.set_ylim(ylim_ax_3_1)
 
     xlim_ax_3_2 = ax_3_2.get_xlim()
     ylim_ax_3_2 = ax_3_2.get_ylim()
-    ax_3_2.hlines(1E0, -3E0, 1E0, color='k', linewidth=4, alpha=0.3)
+    ax_3_2.hlines(1E0, xlim_psi_min, xlim_psi_max, color='k', linewidth=4, alpha=0.3)
     ax_3_2.set_yticks([1E-3, 1E-2, 1E-1, 1E0, 1E1, 1E2, 1E3, 1E4])
     ax_3_2.set_xlim(xlim_ax_3_2)
     ax_3_2.set_ylim(ylim_ax_3_2)
 
-    xlim_ax_3_3 = ax_3_3.get_xlim()
-    ylim_ax_3_3 = ax_3_3.get_ylim()
-    if ylim_ax_3_3[0] < -1E0 or ylim_ax_3_3[1] > 1E0:
-        ax_3_3.set_yscale('symlog', linthresh=1E0)
-    # ylim_ax_3_3の範囲を1.05倍する
-    ylim_ax_3_3 = np.array(ylim_ax_3_3) * 1.1
+    xlim_ax_3_1 = ax_3_1.get_xlim()
+    ylim_ax_3_1 = ax_3_1.get_ylim()
+    if ylim_ax_3_1[0] < -1E0 or ylim_ax_3_1[1] > 1E0:
+        ax_3_1.set_yscale('symlog', linthresh=1E0)
+    # ylim_ax_3_1の範囲を1.05倍する
+    ylim_ax_3_1 = np.array(ylim_ax_3_1) * 1.1
 
     psi_array_for_plot = np.linspace(-np.pi, np.pi, 10000)
     theta_array_for_plot = np.sqrt(5E-1 * (np.cos(psi_array_for_plot) + np.sqrt(1E0 - initial_S_value_main**2E0) - initial_S_value_main * (psi_array_for_plot + np.pi - np.arcsin(initial_S_value_main))))
-    ax_3_3.plot(psi_array_for_plot / np.pi, theta_array_for_plot, color='k', linewidth=4, alpha=0.3)
-    ax_3_3.plot(psi_array_for_plot / np.pi, -theta_array_for_plot, color='k', linewidth=4, alpha=0.3)
-    ax_3_3.hlines(0E0, -3E0, 1E0, color='k', linewidth=4, alpha=0.3)
-    ax_3_3.set_xlim(xlim_ax_3_3)
-    ax_3_3.set_ylim(ylim_ax_3_3)
+    ax_3_1.plot(psi_array_for_plot / np.pi, theta_array_for_plot, color='k', linewidth=4, alpha=0.3)
+    ax_3_1.plot(psi_array_for_plot / np.pi, -theta_array_for_plot, color='k', linewidth=4, alpha=0.3)
+    ax_3_1.hlines(0E0, xlim_psi_min, xlim_psi_max, color='k', linewidth=4, alpha=0.3)
+    ax_3_1.set_xlim(xlim_ax_3_1)
+    ax_3_1.set_ylim(ylim_ax_3_1)
     #ax_3_3.legend()
 
+    xlim_ax_3_3 = ax_3_3.get_xlim()
+    ylim_ax_3_3 = ax_3_3.get_ylim()
+    ax_3_3.hlines(0E0, xlim_psi_min, xlim_psi_max, color='k', linewidth=4, alpha=0.3)
+    if ylim_ax_3_3[0] < -1E0 or ylim_ax_3_3[1] > 1E0:
+        ax_3_3.set_yscale('symlog', linthresh=1E0)
+    ax_3_3.set_xlim(xlim_ax_3_3)
 
-    ylim_ax_2_3 = ax_2_3.get_ylim()
-    if ylim_ax_2_3[0] < 1E0:
-        ax_2_3.set_ylim(1E0, ylim_ax_2_3[1])
+
+
+    #ylim_ax_2_3 = ax_2_3.get_ylim()
+    #if ylim_ax_2_3[0] < 1E0:
+    #    ax_2_3.set_ylim(1E0, ylim_ax_2_3[1])
 
     axes = [ax_1_1, ax_1_2, ax_2_1, ax_2_2, ax_2_3, ax_2_4, ax_3_1, ax_3_2, ax_3_3, ax_3_4]
     for ax in axes:

@@ -8,10 +8,11 @@ mpl.rcParams['text.usetex'] = True
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.serif'] = ['Computer Modern Roman']
 mpl.rcParams['mathtext.fontset'] = 'cm'
-plt.rcParams["font.size"] = 35
+plt.rcParams["font.size"] = 40
 
 #定数
-S_number_array = [0E0, 2.5E-1, 5E-1, 7.5E-1, 1E0, 1.25E0]
+#S_number_array = [0E0, 2.5E-1, 5E-1, 7.5E-1, 1E0, 1.25E0]
+S_number_array = [0E0, 2.5E-1, 5E-1, 1E0]
 
 # wave_phaseの範囲
 wave_phase_min = -np.pi
@@ -31,14 +32,25 @@ psi_pi_theta_num = 16
 
 
 # plot
-fig = plt.figure(figsize=(30, 20), dpi=100)
-ax_1 = fig.add_subplot(231, xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\theta / 2 \omega_{\mathrm{t}}$', xlim=(-1, 1), ylim=(-3, 3))
-ax_2 = fig.add_subplot(232, xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\theta / 2 \omega_{\mathrm{t}}$', xlim=(-1, 1), ylim=(-3, 3))
-ax_3 = fig.add_subplot(233, xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\theta / 2 \omega_{\mathrm{t}}$', xlim=(-1, 1), ylim=(-3, 3))
-ax_4 = fig.add_subplot(234, xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\theta / 2 \omega_{\mathrm{t}}$', xlim=(-1, 1), ylim=(-3, 3))
-ax_5 = fig.add_subplot(235, xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\theta / 2 \omega_{\mathrm{t}}$', xlim=(-1, 1), ylim=(-3, 3))
-ax_6 = fig.add_subplot(236, xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\theta / 2 \omega_{\mathrm{t}}$', xlim=(-1, 1), ylim=(-3, 3))
-axes = [ax_1, ax_2, ax_3, ax_4, ax_5, ax_6]
+square_num = np.ceil(np.sqrt(len(S_number_array)))
+square_num = int(square_num)
+fig = plt.figure(figsize=(square_num*5, square_num*5), dpi=100)
+
+plt.rcParams["font.size"] = square_num * 10
+#ax_1 = fig.add_subplot(231, xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\Theta$', xlim=(-1, 1), ylim=(-3, 3))
+#ax_2 = fig.add_subplot(232, xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\Theta$', xlim=(-1, 1), ylim=(-3, 3))
+#ax_3 = fig.add_subplot(233, xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\Theta$', xlim=(-1, 1), ylim=(-3, 3))
+#ax_4 = fig.add_subplot(234, xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\Theta$', xlim=(-1, 1), ylim=(-3, 3))
+#ax_5 = fig.add_subplot(235, xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\Theta$', xlim=(-1, 1), ylim=(-3, 3))
+#ax_6 = fig.add_subplot(236, xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\Theta$', xlim=(-1, 1), ylim=(-3, 3))
+#axes = [ax_1, ax_2, ax_3, ax_4, ax_5, ax_6]
+
+#S_number_arrayの数だけsubplotを作成、長方形または正方形になるように調整
+axes = []
+for count_i in range(len(S_number_array)):
+    ax = fig.add_subplot(square_num, square_num, count_i + 1, xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\theta / 2 \omega_{\mathrm{t}}$', xlim=(-1, 1), ylim=(-3, 3))
+    axes.append(ax)
+
 
 def non_saddle_point_function(psi, S_number):
     return np.cos(psi) + np.sqrt(1E0 - S_number**2E0) - S_number * (psi + np.pi - np.arcsin(S_number))
@@ -64,7 +76,7 @@ for count_i in range(len(S_number_array)):
     ax = axes[count_i]
     ax.set_title(r'$S$ $=$ ' + f'{S_number:.2f}')
     #(a)のような図番号を付ける
-    ax.text(-0.15, 1.0, '(' + chr(97 + count_i) + ')', transform=ax.transAxes, fontsize=40)
+    ax.text(-0.15, 1.0, '(' + chr(97 + count_i) + ')', transform=ax.transAxes)
 
     #各theta_0_psiを通る軌道のプロット
     for theta_0_psi in np.linspace(theta_0_psi_min, theta_0_psi_max, theta_0_psi_num):
@@ -100,26 +112,29 @@ for count_i in range(len(S_number_array)):
         theta_minus_saddle = - np.sqrt(0.5*((np.cos(wave_phase_saddle) - np.cos(saddle_point)) - S_number * (wave_phase_saddle - saddle_point)))
         ax.plot(wave_phase/np.pi, theta_plus_saddle_1, color='k', lw=1, alpha=0.6)
         ax.plot(wave_phase/np.pi, theta_minus_saddle_1, color='k', lw=1, alpha=0.6)
-        ax.plot(wave_phase_saddle/np.pi, theta_plus_saddle, color='orange', lw=4, alpha=1)
-        ax.plot(wave_phase_saddle/np.pi, theta_minus_saddle, color='orange', lw=4, alpha=1)
+        ax.plot(wave_phase_saddle/np.pi, theta_plus_saddle, color='orange', lw=1.3*square_num, alpha=1)
+        ax.plot(wave_phase_saddle/np.pi, theta_minus_saddle, color='orange', lw=1.3*square_num, alpha=1)
 
         #鞍点と安定点のプロット
-        ax.scatter(saddle_point/np.pi, 0, marker='o', color='b', s=100, zorder=100)
-        ax.scatter(non_saddle_point/np.pi, 0, marker='o', color='g', s=100, zorder=100)
-        ax.scatter(stable_point/np.pi, 0, marker='o', color='r', s=100, zorder=100)
+        ax.scatter(saddle_point/np.pi, 0, marker='o', color='b', s=33*square_num, zorder=100)
+        ax.scatter(non_saddle_point/np.pi, 0, marker='o', color='g', s=33*square_num, zorder=100)
+        ax.scatter(stable_point/np.pi, 0, marker='o', color='r', s=33*square_num, zorder=100)
     
     #psi = piを通過する軌道のプロット
-    if S_number > 0E0:
-        theta_plus_pi = np.sqrt(0.5*((np.cos(wave_phase) - np.cos(np.pi)) - S_number * (wave_phase - np.pi)))
-        theta_minus_pi = - np.sqrt(0.5*((np.cos(wave_phase) - np.cos(np.pi)) - S_number * (wave_phase - np.pi)))
-        ax.plot(wave_phase/np.pi, theta_plus_pi, color='purple', lw=4, alpha=1)
-        ax.plot(wave_phase/np.pi, theta_minus_pi, color='purple', lw=4, alpha=1)
+    #if S_number > 0E0:
+    #    theta_plus_pi = np.sqrt(0.5*((np.cos(wave_phase) - np.cos(np.pi)) - S_number * (wave_phase - np.pi)))
+    #    theta_minus_pi = - np.sqrt(0.5*((np.cos(wave_phase) - np.cos(np.pi)) - S_number * (wave_phase - np.pi)))
+    #    ax.plot(wave_phase/np.pi, theta_plus_pi, color='purple', lw=4, alpha=1)
+    #    ax.plot(wave_phase/np.pi, theta_minus_pi, color='purple', lw=4, alpha=1)
     
     ax.minorticks_on()
     ax.grid(which='both', alpha=0.3)
 
+#余白を削除
+
+
 fig.tight_layout()
 dir_name = f'/mnt/j/KAW_simulation_data/single_test_particle/keisan/psi_theta_trajectory'
 os.makedirs(dir_name, exist_ok=True)
-fig.savefig(f'{dir_name}/psi_theta_trajectory.png')
-fig.savefig(f'{dir_name}/psi_theta_trajectory.pdf')
+fig.savefig(f'{dir_name}/psi_theta_trajectory_except_nonresonant.png')
+fig.savefig(f'{dir_name}/psi_theta_trajectory_except_nonresonant.pdf')
