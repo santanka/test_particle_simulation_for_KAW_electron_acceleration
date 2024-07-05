@@ -396,17 +396,19 @@ def main(args):
 # plot
 fig = plt.figure(figsize=(30, 40), dpi=100)
 gs = fig.add_gridspec(5, 2, height_ratios=[1, 1, 1, 1, 0.05])
-fig.suptitle(r'$K_{\perp} (\lambda = 0) = 1.0 \, \mathrm{eV}$')
 
-ax_1_1 = fig.add_subplot(gs[0, 0], title=r'$K(\lambda = \lambda_{\mathrm{iono}}) \geq 10 \, \mathrm{keV}$', xlabel=r'$\lambda$ [deg]', ylabel=r'$K$ [eV]', xlim=[0, mlat_upper_limit_deg+1], ylim=[0, 1.1E4])
+select_mu = select_Kperp_eq / (magnetic_flux_density(0E0) * 1E9)
+fig.suptitle(r'$\mu = %.3f \, \mathrm{eV/nT}$' % (select_mu))
+
+ax_1_1 = fig.add_subplot(gs[0, 0], title=r'$K_{\mathrm{iono}} \geq 10 \, \mathrm{keV}$', xlabel=r'$\lambda$ [deg]', ylabel=r'$K$ [eV]', xlim=[0, mlat_upper_limit_deg+1], ylim=[0, 1.1E4])
 ax_1_2 = fig.add_subplot(gs[1, 0], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$K$ [eV]', xlim=[-1, 1], ylim=[0, 1.1E4])
 ax_1_3 = fig.add_subplot(gs[2, 0], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\mathrm{d} K / \mathrm{d} t$ [eV/s]', xlim=[-1, 1])
-ax_1_4 = fig.add_subplot(gs[3, 0], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\lambda$ [deg]', xlim=[-1, 1], ylim=[0, mlat_upper_limit_deg+1])
+ax_1_4 = fig.add_subplot(gs[3, 0], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\theta / 2 \omega_{\mathrm{t}}$', xlim=[-1, 1])
 
-ax_2_1 = fig.add_subplot(gs[0, 1], title=r'$6 \, \mathrm{keV} \leq K(\lambda = \lambda_{\mathrm{iono}}) \leq 7 \, \mathrm{keV}$', xlabel=r'$\lambda$ [deg]', ylabel=r'$K$ [eV]', xlim=[0, mlat_upper_limit_deg+1], ylim=[0, 1.1E4])
+ax_2_1 = fig.add_subplot(gs[0, 1], title=r'$K_{\mathrm{iono}} \in [6, 7] \, \mathrm{keV}$', xlabel=r'$\lambda$ [deg]', ylabel=r'$K$ [eV]', xlim=[0, mlat_upper_limit_deg+1], ylim=[0, 1.1E4])
 ax_2_2 = fig.add_subplot(gs[1, 1], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$K$ [eV]', xlim=[-1, 1], ylim=[0, 1.1E4])
 ax_2_3 = fig.add_subplot(gs[2, 1], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\mathrm{d} K / \mathrm{d} t$ [eV/s]', xlim=[-1, 1])
-ax_2_4 = fig.add_subplot(gs[3, 1], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\lambda$ [deg]', xlim=[-1, 1], ylim=[0, mlat_upper_limit_deg+1])
+ax_2_4 = fig.add_subplot(gs[3, 1], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\theta / 2 \omega_{\mathrm{t}}$', xlim=[-1, 1])
 
 cmap_color = cm.get_cmap('turbo')
 color_target = data_initial_psi_color_target / np.pi
@@ -428,16 +430,16 @@ for ax in axes:
     ax.text(-0.2, 1.05, '(' + chr(97 + axes.index(ax)) + ')', transform=ax.transAxes)
 
 def scatter_plot(ax, x, y, color_target, cmap_color, vmin, vmax):
-    ax.scatter(x, y, c=color_target, cmap=cmap_color, vmin=vmin, vmax=vmax, s=1E0)
+    ax.scatter(x, y, c=color_target, cmap=cmap_color, vmin=vmin, vmax=vmax, s=5E-1)
     ax.scatter(x[0], y[0], c='lightgrey', s=200, marker='o', edgecolors='k', zorder=1)
     ax.scatter(x[-1], y[-1], c='orange', s=200, marker='D', edgecolors='k', zorder=1)
     return
 
-def main_scatter_plot(axes, mlat_rad, Ktotal, psi, d_Ktotal_d_t, color_target, cmap_color, vmin, vmax):
+def main_scatter_plot(axes, mlat_rad, Ktotal, psi, d_Ktotal_d_t, Theta, color_target, cmap_color, vmin, vmax):
     scatter_plot(axes[0], mlat_rad * 180E0 / np.pi, Ktotal / elementary_charge, color_target, cmap_color, vmin, vmax)
     scatter_plot(axes[1], psi / np.pi, Ktotal / elementary_charge, color_target, cmap_color, vmin, vmax)
     scatter_plot(axes[2], psi / np.pi, d_Ktotal_d_t, color_target, cmap_color, vmin, vmax)
-    scatter_plot(axes[3], psi / np.pi, mlat_rad * 180E0 / np.pi, color_target, cmap_color, vmin, vmax)
+    scatter_plot(axes[3], psi / np.pi, Theta, color_target, cmap_color, vmin, vmax)
     return
 
 
@@ -462,7 +464,7 @@ if __name__ == '__main__':
 
         # Choose the appropriate axes based on count_i value
         axes = axes_1 if count_i == 0 else axes_2
-        main_scatter_plot(axes, mlat_rad_array, Ktotal_energy_array, psi_array, d_Ktotal_d_t_array / elementary_charge, color_target[count_j] * np.ones_like(mlat_rad_array), cmap_color, vmin, vmax)
+        main_scatter_plot(axes, mlat_rad_array, Ktotal_energy_array, psi_array, d_Ktotal_d_t_array / elementary_charge, theta_array / 2E0 / trapping_frequency_array, color_target[count_j] * np.ones_like(mlat_rad_array), cmap_color, vmin, vmax)
 
 mlat_deg_for_background = np.linspace(0.1E0, mlat_upper_limit_deg, 1000)
 mlat_rad_for_background = mlat_deg_for_background * np.pi / 180E0
@@ -470,27 +472,32 @@ energy_wave_phase_speed_for_background = energy_wave_phase_speed(mlat_rad_for_ba
 energy_wave_potential_for_background = energy_wave_potential(mlat_rad_for_background)
 energy_Kperp = select_Kperp_eq * magnetic_flux_density(mlat_rad_for_background) / magnetic_flux_density(0E0)
 
-ax_1_1.plot(mlat_deg_for_background, energy_wave_phase_speed_for_background / elementary_charge, c='r', linewidth=4, label=r'$K_{\mathrm{ph \parallel}}$', alpha=0.6)
+ax_1_1.plot(mlat_deg_for_background, energy_wave_phase_speed_for_background / elementary_charge + energy_Kperp, c='r', linewidth=4, label=r'$K_{\mathrm{ph \parallel}} + K_{\perp}$', alpha=0.6)
 ax_1_1.plot(mlat_deg_for_background, energy_wave_potential_for_background / elementary_charge * np.ones_like(mlat_rad_for_background), c='g', linewidth=4, label=r'$K_{\mathrm{E}}$', alpha=0.6)
 ax_1_1.plot(mlat_deg_for_background, energy_Kperp, c='orange', linewidth=4, label=r'$K_{\perp}$', alpha=0.6)
-ax_1_1.legend(fontsize=40)
+#ax_1_1.legend(fontsize=40)
 
-ax_2_1.plot(mlat_deg_for_background, energy_wave_phase_speed_for_background / elementary_charge, c='r', linewidth=4, label=r'$K_{\mathrm{ph \parallel}}$', alpha=0.6)
+ax_2_1.plot(mlat_deg_for_background, energy_wave_phase_speed_for_background / elementary_charge + energy_Kperp, c='r', linewidth=4, label=r'$K_{\mathrm{ph \parallel}} + K_{\perp}$', alpha=0.6)
 ax_2_1.plot(mlat_deg_for_background, energy_wave_potential_for_background / elementary_charge * np.ones_like(mlat_rad_for_background), c='g', linewidth=4, label=r'$K_{\mathrm{E}}$', alpha=0.6)
 ax_2_1.plot(mlat_deg_for_background, energy_Kperp, c='orange', linewidth=4, label=r'$K_{\perp}$', alpha=0.6)
-ax_2_1.legend(fontsize=40)
+#ax_2_1.legend(fontsize=40)
 
 ylim_ax_1_3 = ax_1_3.get_ylim()
-ax_1_3.hlines(0E0, -1, 1, colors='k', alpha=0.6)
+ax_1_3.axhline(0E0, color='k', linewidth=4E0, zorder=0, alpha=0.3, linestyle='--')
 ax_1_3.set_ylim(ylim_ax_1_3)
 ylim_ax_2_3 = ax_2_3.get_ylim()
-ax_2_3.hlines(0E0, -1, 1, colors='k', alpha=0.6)
+ax_2_3.axhline(0E0, color='k', linewidth=4E0, zorder=0, alpha=0.3, linestyle='--')
 ax_2_3.set_ylim(ylim_ax_2_3)
+
+ax_1_4.set_ylim(-1, 1)
+ax_2_4.set_ylim(-1, 1)
+ax_1_4.axhline(0E0, color='k', linewidth=4E0, zorder=0, alpha=0.3, linestyle='--')
+ax_2_4.axhline(0E0, color='k', linewidth=4E0, zorder=0, alpha=0.3, linestyle='--')
 
 axes_psi = [ax_1_2, ax_1_3, ax_1_4, ax_2_2, ax_2_3, ax_2_4]
 for ax in axes_psi:
     ax_ymin, ax_ymax = ax.get_ylim()
-    ax.vlines(0E0, ax_ymin, ax_ymax, colors='k', alpha=0.6)
+    ax.axvline(0E0, color='k', linewidth=4E0, zorder=0, alpha=0.3, linestyle='--')
     ax.set_ylim(ax_ymin, ax_ymax)
 
 fig.tight_layout(w_pad=0.3, h_pad=0)
