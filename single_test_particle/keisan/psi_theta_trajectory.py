@@ -10,8 +10,8 @@ mpl.rcParams['font.serif'] = ['Computer Modern Roman']
 mpl.rcParams['mathtext.fontset'] = 'cm'
 
 #定数
-S_number_array = [0E0, 2.5E-1, 5E-1, 7.5E-1, 1E0, 1.25E0]
-#S_number_array = [0E0, 2.5E-1, 5E-1, 1E0]
+#S_number_array = [0E0, 2.5E-1, 5E-1, 7.5E-1, 1E0, 1.25E0]
+S_number_array = [0E0, 2.5E-1, 7.5E-1, 1E0]
 
 # wave_phaseの範囲
 wave_phase_min = -np.pi
@@ -52,7 +52,7 @@ plt.rcParams["font.size"] = square_num * 10
 #S_number_arrayの数だけsubplotを作成、長方形または正方形になるように調整
 axes = []
 for count_i in range(len(S_number_array)):
-    ax = fig.add_subplot(vertical_number, horizontal_number, count_i + 1, xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\theta / 2 \omega_{\mathrm{t}}$', xlim=(-1, 1), ylim=(-2, 2))
+    ax = fig.add_subplot(vertical_number, horizontal_number, count_i + 1, xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\theta / 2 \omega_{\mathrm{t}}$', xlim=(-1, 1), ylim=(-1.5, 1.5))
     axes.append(ax)
 
 

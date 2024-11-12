@@ -405,7 +405,7 @@ ax_1_2 = fig.add_subplot(gs[1, 0], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$K$ [e
 ax_1_3 = fig.add_subplot(gs[2, 0], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\mathrm{d} K / \mathrm{d} t$ [eV/s]', xlim=[-1, 1])
 ax_1_4 = fig.add_subplot(gs[3, 0], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\theta / 2 \omega_{\mathrm{t}}$', xlim=[-1, 1])
 
-ax_2_1 = fig.add_subplot(gs[0, 1], title=r'$K_{\mathrm{iono}} \in [6, 7] \, \mathrm{keV}$', xlabel=r'$\lambda$ [deg]', ylabel=r'$K$ [eV]', xlim=[0, mlat_upper_limit_deg+1], ylim=[0, 1.1E4])
+ax_2_1 = fig.add_subplot(gs[0, 1], title=r'$6 \, \mathrm{keV} \leq K_{\mathrm{iono}} \leq 7 \, \mathrm{keV}$', xlabel=r'$\lambda$ [deg]', ylabel=r'$K$ [eV]', xlim=[0, mlat_upper_limit_deg+1], ylim=[0, 1.1E4])
 ax_2_2 = fig.add_subplot(gs[1, 1], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$K$ [eV]', xlim=[-1, 1], ylim=[0, 1.1E4])
 ax_2_3 = fig.add_subplot(gs[2, 1], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\mathrm{d} K / \mathrm{d} t$ [eV/s]', xlim=[-1, 1])
 ax_2_4 = fig.add_subplot(gs[3, 1], xlabel=r'$\psi$ [$\pi$ rad]', ylabel=r'$\theta / 2 \omega_{\mathrm{t}}$', xlim=[-1, 1])

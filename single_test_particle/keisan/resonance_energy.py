@@ -97,19 +97,35 @@ def kperp(mlat_rad):
 def wave_phase_speed_perp(mlat_rad):
     return wave_frequency / kperp(mlat_rad)    #[m/s]
 
-def cyclotron_resonance_energy(mlat_rad, vperp):
+def Landau_resonance_energy(mlat_rad):
+    if mlat_rad == 0E0:
+        return np.nan
+    else:
+        Vph = wave_phase_speed_para(mlat_rad)    #[m/s]
+        energy = electron_mass / 2E0 * Vph**2E0 / elementary_charge    #[eV]
+        return energy
+
+def cyclotron_resonance_energy(mlat_rad, pitch_angle):
     if mlat_rad == 0E0:
         return np.nan, np.nan
     else:
         omega_e = elementary_charge * magnetic_flux_density(mlat_rad) / electron_mass    #[rad/s]
         kpara_def = kpara(mlat_rad)    #[rad/m]
         #2次方程式の解の公式
-        first_order_coefficient = kpara_def * speed_of_light**2E0 * wave_frequency / ((kpara_def*speed_of_light)**2E0 + omega_e**2E0)
-        second_order_coefficient = (omega_e**2E0 - wave_frequency**2E0) / ((kpara_def*speed_of_light)**2E0 + omega_e**2E0) * speed_of_light**2E0
-        vperp_term = omega_e**2E0 / ((kpara_def*speed_of_light)**2E0 + omega_e**2E0) * vperp**2E0
-        Vres = first_order_coefficient + np.sqrt(first_order_coefficient**2E0 + second_order_coefficient - vperp_term)
-        Lorentz_factor = 1E0 / np.sqrt(1E0 - (Vres**2E0 + vperp**2E0) / speed_of_light**2E0)
-        return electron_mass * speed_of_light**2E0 * (Lorentz_factor - 1E0), Lorentz_factor    #[J]
+        coefficient_a = wave_frequency**2E0 - kpara_def**2E0 * speed_of_light**2E0 * np.cos(pitch_angle)**2E0
+        coefficient_b = -2E0 * omega_e * wave_frequency
+        coefficient_c = omega_e**2E0 + kpara_def**2E0 * speed_of_light**2E0 * np.cos(pitch_angle)**2E0
+        Lorentz_factor_plus = (-coefficient_b + np.sqrt(coefficient_b**2E0 - 4E0 * coefficient_a * coefficient_c)) / 2E0 / coefficient_a
+        Lorentz_factor_minus = (-coefficient_b - np.sqrt(coefficient_b**2E0 - 4E0 * coefficient_a * coefficient_c)) / 2E0 / coefficient_a
+        if Lorentz_factor_plus > 1E0 and Lorentz_factor_minus > 1E0:
+            Lorentz_factor = min(Lorentz_factor_plus, Lorentz_factor_minus)
+        elif Lorentz_factor_plus > 1E0 and Lorentz_factor_minus < 1E0:
+            Lorentz_factor = Lorentz_factor_plus
+        elif Lorentz_factor_plus < 1E0 and Lorentz_factor_minus > 1E0:
+            Lorentz_factor = Lorentz_factor_minus
+        else:
+            Lorentz_factor = np.nan
+        return electron_mass * speed_of_light**2E0 * (Lorentz_factor - 1E0) / elementary_charge, Lorentz_factor    #[eV]
 
 fig = plt.figure(figsize=(20, 20), dpi=100)
 ax = fig.add_subplot(111, xlabel=r'$\mathrm{MLAT}$ [deg]', ylabel=r'$\mathrm{Energy}$ [eV]', xlim=(0E0, mlat_upper_limit_deg), yscale='log')
@@ -120,13 +136,15 @@ Lorentz_factor_cyclotron_resonance_array = np.zeros(len(mlat_rad_array))
 energy_Landau_resonance_array = np.zeros(len(mlat_rad_array))
 for count_i in range(len(mlat_rad_array)):
     mlat_rad = mlat_rad_array[count_i]
-    energy_cyclotron_resonance_array[count_i], Lorentz_factor_cyclotron_resonance_array[count_i] = cyclotron_resonance_energy(mlat_rad, Alfven_speed(mlat_rad))
-    energy_Landau_resonance_array[count_i] = energy_wave_phase_speed_para(mlat_rad, Alfven_speed(mlat_rad))
+    energy_cyclotron_resonance_array[count_i], Lorentz_factor_cyclotron_resonance_array[count_i] = cyclotron_resonance_energy(mlat_rad, 0)
+    energy_Landau_resonance_array[count_i] = Landau_resonance_energy(mlat_rad)
 
-ax.plot(mlat_rad_array * 180E0 / np.pi, energy_cyclotron_resonance_array / elementary_charge, color='b', lw=4, label=r'$\mathrm{Cyclotron}$')
-ax.plot(mlat_rad_array * 180E0 / np.pi, energy_Landau_resonance_array / elementary_charge, color='r', lw=4, label=r'$\mathrm{Landau}$')
+ax.plot(mlat_rad_array * 180E0 / np.pi, energy_cyclotron_resonance_array, color='b', lw=4, label=r'$\mathrm{Cyclotron}$')
+ax.plot(mlat_rad_array * 180E0 / np.pi, energy_Landau_resonance_array, color='r', lw=4, label=r'$\mathrm{Landau}$')
 
 ax.legend(loc='upper left', fontsize=30)
+#y軸のメモリの設定: 10^0, 10^1, 10^2, 10^3, 10^4, 10^5, 10^6...
+ax.set_yticks([10**i for i in range(14)])
 ax.minorticks_on()
 ax.grid(which='both', alpha=0.3)
 fig.tight_layout()
