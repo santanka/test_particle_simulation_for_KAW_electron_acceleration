@@ -506,6 +506,8 @@ for count_i in range(Kperp_S_value_grid_number):
             
             for result in results:
                 mlat_rad_array_RK4, theta_array_RK4, psi_array_RK4, time_array_RK4, S_value_array_RK4, mlat_deg_array_RK4, vpara_array_RK4, Kperp_array_eV_RK4, Kpara_array_eV_RK4, K_array_eV_RK4, trapping_frequency_array_RK4, d_K_d_t_eV_s_array_RK4 = result
+                if mlat_rad_array_RK4[0] != mlat_rad_array_RK4[0]:
+                    continue
 
                 pitch_angle_array = np.arcsin(np.sqrt(Kperp_array_eV_RK4 / K_array_eV_RK4)) * np.sign(vpara_array_RK4)
                 pitch_angle_array = np.where(pitch_angle_array < 0E0, pitch_angle_array + np.pi, pitch_angle_array)
@@ -565,15 +567,15 @@ for count_i in range(Kperp_S_value_grid_number):
     energy_perpendicular_array_for_background = initial_mu_main * magnetic_flux_density(mlat_rad_array_for_background)
     loss_cone_array_for_background = loss_cone(mlat_rad_array_for_background)
 
-    ax_1_1.plot(mlat_deg_array_for_background, wave_phase_speed_array_for_background / speed_of_light, c='r', linewidth=4, zorder=-1, alpha=0.3)
+    ax_1_1.plot(mlat_deg_array_for_background, wave_phase_speed_array_for_background / speed_of_light, c='r', linewidth=4, zorder=-1, alpha=0.6, linestyle='-.')
     ax_1_1.axhline(y=0E0, color='k', linewidth=4, zorder=-1, alpha=0.3, linestyle='--')
 
-    ax_2_1.plot(mlat_deg_array_for_background, (energy_wave_phase_speed_array_for_background + energy_perpendicular_array_for_background) / elementary_charge, c='r', linewidth=4, zorder=-1, alpha=0.3)
-    ax_2_1.plot(mlat_deg_array_for_background, energy_wave_potential_array_for_background / elementary_charge, c='g', linewidth=4, zorder=-1, alpha=0.3)
-    ax_2_1.plot(mlat_deg_array_for_background, energy_perpendicular_array_for_background / elementary_charge, c='orange', linewidth=4, zorder=-1, alpha=0.3)
+    ax_2_1.plot(mlat_deg_array_for_background, (energy_wave_phase_speed_array_for_background + energy_perpendicular_array_for_background) / elementary_charge, c='r', linewidth=4, zorder=-1, alpha=0.6, linestyle='-.')
+    ax_2_1.plot(mlat_deg_array_for_background, energy_wave_potential_array_for_background / elementary_charge, c='g', linewidth=4, zorder=-1, alpha=0.6, linestyle='-.')
+    ax_2_1.plot(mlat_deg_array_for_background, energy_perpendicular_array_for_background / elementary_charge, c='orange', linewidth=4, zorder=-1, alpha=0.6, linestyle='-.')
 
-    ax_3_1.plot(mlat_deg_array_for_background, loss_cone_array_for_background * 180E0 / np.pi, c='k', linewidth=4, zorder=-1, alpha=0.3)
-    ax_3_1.plot(mlat_deg_array_for_background, (np.pi - loss_cone_array_for_background) * 180E0 / np.pi, c='k', linewidth=4, zorder=-1, alpha=0.3)
+    ax_3_1.plot(mlat_deg_array_for_background, loss_cone_array_for_background * 180E0 / np.pi, c='k', linewidth=4, zorder=-1, alpha=0.6, linestyle='-.')
+    ax_3_1.plot(mlat_deg_array_for_background, (np.pi - loss_cone_array_for_background) * 180E0 / np.pi, c='k', linewidth=4, zorder=-1, alpha=0.6, linestyle='-.')
     ax_3_1.axhline(y=90E0, color='k', linewidth=4, zorder=-1, alpha=0.3, linestyle='--')
     ylim_ax_3_1 = [np.nanmax([ylim_ax_3_1[0], 0E0]), np.nanmin([ylim_ax_3_1[1], 180E0])]
 
@@ -591,8 +593,8 @@ for count_i in range(Kperp_S_value_grid_number):
 
     psi_array_for_background = np.linspace(-np.pi, np.pi, 10000)
     Theta_array_for_background = np.sqrt(5E-1 * (np.cos(psi_array_for_background) + np.sqrt(1E0 - initial_S_value_main**2E0) - initial_S_value_main * (psi_array_for_background + np.pi - np.arcsin(initial_S_value_main))))
-    ax_2_2.plot(psi_array_for_background / np.pi, Theta_array_for_background, c='k', linewidth=4, zorder=-1, alpha=0.3)
-    ax_2_2.plot(psi_array_for_background / np.pi, -Theta_array_for_background, c='k', linewidth=4, zorder=-1, alpha=0.3)
+    ax_2_2.plot(psi_array_for_background / np.pi, Theta_array_for_background, c='k', linewidth=4, zorder=-1, alpha=0.6, linestyle='-.')
+    ax_2_2.plot(psi_array_for_background / np.pi, -Theta_array_for_background, c='k', linewidth=4, zorder=-1, alpha=0.6, linestyle='-.')
     ax_2_2.axhline(y=0E0, color='k', linewidth=4, zorder=-1, alpha=0.3, linestyle='--')
 
     ax_1_3.axhline(y=1E0, color='k', linewidth=4, zorder=-1, alpha=0.3, linestyle='--')

@@ -472,14 +472,14 @@ energy_wave_phase_speed_for_background = energy_wave_phase_speed(mlat_rad_for_ba
 energy_wave_potential_for_background = energy_wave_potential(mlat_rad_for_background)
 energy_Kperp = select_Kperp_eq * magnetic_flux_density(mlat_rad_for_background) / magnetic_flux_density(0E0)
 
-ax_1_1.plot(mlat_deg_for_background, energy_wave_phase_speed_for_background / elementary_charge + energy_Kperp, c='r', linewidth=4, label=r'$K_{\mathrm{ph \parallel}} + K_{\perp}$', alpha=0.6)
-ax_1_1.plot(mlat_deg_for_background, energy_wave_potential_for_background / elementary_charge * np.ones_like(mlat_rad_for_background), c='g', linewidth=4, label=r'$K_{\mathrm{E}}$', alpha=0.6)
-ax_1_1.plot(mlat_deg_for_background, energy_Kperp, c='orange', linewidth=4, label=r'$K_{\perp}$', alpha=0.6)
+ax_1_1.plot(mlat_deg_for_background, energy_wave_phase_speed_for_background / elementary_charge + energy_Kperp, c='r', linewidth=4, label=r'$K_{\mathrm{ph \parallel}} + K_{\perp}$', alpha=0.6, linestyle='-.')
+ax_1_1.plot(mlat_deg_for_background, energy_wave_potential_for_background / elementary_charge * np.ones_like(mlat_rad_for_background), c='g', linewidth=4, label=r'$K_{\mathrm{E}}$', alpha=0.6, linestyle='-.')
+ax_1_1.plot(mlat_deg_for_background, energy_Kperp, c='orange', linewidth=4, label=r'$K_{\perp}$', alpha=0.6, linestyle='-.')
 #ax_1_1.legend(fontsize=40)
 
-ax_2_1.plot(mlat_deg_for_background, energy_wave_phase_speed_for_background / elementary_charge + energy_Kperp, c='r', linewidth=4, label=r'$K_{\mathrm{ph \parallel}} + K_{\perp}$', alpha=0.6)
-ax_2_1.plot(mlat_deg_for_background, energy_wave_potential_for_background / elementary_charge * np.ones_like(mlat_rad_for_background), c='g', linewidth=4, label=r'$K_{\mathrm{E}}$', alpha=0.6)
-ax_2_1.plot(mlat_deg_for_background, energy_Kperp, c='orange', linewidth=4, label=r'$K_{\perp}$', alpha=0.6)
+ax_2_1.plot(mlat_deg_for_background, energy_wave_phase_speed_for_background / elementary_charge + energy_Kperp, c='r', linewidth=4, label=r'$K_{\mathrm{ph \parallel}} + K_{\perp}$', alpha=0.6, linestyle='-.')
+ax_2_1.plot(mlat_deg_for_background, energy_wave_potential_for_background / elementary_charge * np.ones_like(mlat_rad_for_background), c='g', linewidth=4, label=r'$K_{\mathrm{E}}$', alpha=0.6, linestyle='-.')
+ax_2_1.plot(mlat_deg_for_background, energy_Kperp, c='orange', linewidth=4, label=r'$K_{\perp}$', alpha=0.6, linestyle='-.')
 #ax_2_1.legend(fontsize=40)
 
 ylim_ax_1_3 = ax_1_3.get_ylim()

@@ -199,9 +199,9 @@ mu_input = 1E2 * elementary_charge / magnetic_flux_density(0E0)
 #quit()
 
 # plot
-fig = plt.figure(figsize=(28, 14), dpi=100)
+fig = plt.figure(figsize=(28, 28), dpi=100)
 #
-ax_1 = fig.add_subplot(121, xlabel=r'$\mathrm{MLAT} \, \lambda$ [$\mathrm{deg}$]', ylabel=r'Length [$\mathrm{m}$]', xlim=(0, mlat_upper_limit_deg), yscale='log')
+ax_1 = fig.add_subplot(221, xlabel=r'$\mathrm{MLAT} \, \lambda$ [$\mathrm{deg}$]', ylabel=r'Length [$\mathrm{m}$]', xlim=(0, mlat_upper_limit_deg), yscale='log')
 ax_1.plot(mlat_deg_array, wavelength_para_array, color='orange', lw=4, label=r'$\Lambda_{\parallel}$')
 ax_1.plot(mlat_deg_array, wavelength_perp_array, color='green', lw=4, label=r'$\Lambda_{\perp}=\rho_{\mathrm{i}}$')
 ax_1.plot(mlat_deg_array, electron_inertial_length_array, color='blue', lw=4, label=r'$d_{\mathrm{e}}$')
@@ -212,7 +212,7 @@ ax_1.minorticks_on()
 ax_1.grid(which='both', alpha=0.3)
 ax_1.text(-0.15, 1.0, r'(a)', transform=ax_1.transAxes, fontsize=35)
 
-ax_2 = fig.add_subplot(122, xlabel=r'$\mathrm{MLAT} \, \lambda$ [$\mathrm{deg}$]', ylabel=r'Ratio', xlim=(0, mlat_upper_limit_deg), yscale='log')
+ax_2 = fig.add_subplot(222, xlabel=r'$\mathrm{MLAT} \, \lambda$ [$\mathrm{deg}$]', ylabel=r'Ratio', xlim=(0, mlat_upper_limit_deg), yscale='log')
 ax_2.plot(mlat_deg_array, beta_ion_array, color='orange', lw=4, label=r'$\beta_{\mathrm{i}}$')
 ax_2.hlines(electron_mass / ion_mass, 0E0, mlat_upper_limit_deg, color='dimgrey', lw=4, label=r'$m_{\mathrm{e}} / m_{\mathrm{i}}$', linestyles='dashed')
 ax_2.plot(mlat_deg_array, delta_array, color='blue', lw=4, label=r'$\delta_{1}$')
@@ -231,6 +231,12 @@ ax_2.set_ylim(1E-5, 1E2)
 #ax_2.set_ylim(1E-2, 1E1)
 ax_2.text(-0.15, 1.0, r'(b)', transform=ax_2.transAxes, fontsize=35)
 
+ax_3 = fig.add_subplot(223, xlabel=r'$\mathrm{MLAT}$ [$\mathrm{deg}$]', ylabel=r'Wave Amplitude $k_{\parallel} \Phi_{\mathrm{E}}$ [$\mathrm{mV/m}$]', xlim=(0, mlat_upper_limit_deg), yscale='log')
+ax_3.plot(mlat_deg_array, wave_modified_potential(mlat_rad_array)*kpara(mlat_rad_array)*10**3, color='orange', lw=4)
+ax_3.minorticks_on()
+ax_3.grid(which='both', alpha=0.3)
+ax_3.text(-0.15, 1.0, r'(c)', transform=ax_3.transAxes, fontsize=35)
+
 #ax_3 = fig.add_subplot(133, xlabel=r'$\mathrm{MLAT}$ [$\mathrm{deg}$]', ylabel=r'Scale', xlim=(0, mlat_upper_limit_deg), yscale='log', ylim=(1E-4, 1E4))
 #ax_3.plot(mlat_deg_array, np.ones_like(mlat_rad_array), color='orange', lw=4, label=r'$1$')
 #ax_3.plot(mlat_deg_array, np.abs(dkpara_dz_kpara2_array), color='green', lw=4, label=r'$\left| \frac{1}{k_{\parallel}^{2}} \frac{\mathrm{d} k_{\parallel}}{\mathrm{d} z} \right|$')
@@ -242,7 +248,7 @@ ax_2.text(-0.15, 1.0, r'(b)', transform=ax_2.transAxes, fontsize=35)
 
 
 fig.tight_layout()
-fig_name = f'/mnt/j/KAW_simulation_data/single_test_particle/keisan/length_scale'
+fig_name = f'/mnt/j/KAW_simulation_data/single_test_particle/keisan/length_scale_2'
 fig.savefig(fig_name + '.png')
 fig.savefig(fig_name + '.pdf')
 plt.close()

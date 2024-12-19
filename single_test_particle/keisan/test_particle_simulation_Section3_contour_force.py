@@ -402,7 +402,7 @@ def main_plot(args):
 
     ax_cbar = fig.add_subplot(gs[0, 1])
     cbar = fig.colorbar(scalarMap_color, cax=ax_cbar, orientation='vertical')
-    cbar.set_label(r'Force of $\delta E_{\parallel}$ [eV/km]')
+    cbar.set_label(r'Force of $\delta E_{\parallel}$ [$10^{-3}$ eV/m]')
 
     ax = fig.add_subplot(gs[0, 0], xlabel=r'MLAT $\lambda$ [deg]', ylabel=r'Time $t$ [s]')
     ax.contourf(mesh_mlat_rad_array_contour * 180E0 / np.pi, mesh_time_array_contour, force_electric_field_array*1E3, cmap=cmap_color, norm=norm_color, levels=1000)
