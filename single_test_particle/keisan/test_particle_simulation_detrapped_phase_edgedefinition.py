@@ -7,6 +7,7 @@ import matplotlib as mpl
 import matplotlib.cm as cm
 import datetime
 import os
+import netCDF4 as nc
 
 mpl.rcParams['text.usetex'] = True
 mpl.rcParams['font.family'] = 'serif'
@@ -141,7 +142,7 @@ Kperp_S_value_grid_number = initial_Kperp_eq_array.size
 
 initial_mu_array = elementary_charge * initial_Kperp_eq_array / magnetic_flux_density(0E0)  #[J/T]
 
-dir_name = f'/mnt/j/KAW_simulation_data/single_test_particle/keisan/test_particle_simulation_detrapped_phase_edgedefinition/forpaper/Kperp_eq_{initial_Kperp_eq_min_eV:.4f}_{initial_Kperp_eq_max_eV:.4f}_eV_S_{initial_S_value_min:.4f}_{initial_S_value_max:.4f}_{separate_number_mesh}_{separate_number_psi}_{grid_scale}_psi_exit_{(psi_exit/np.pi):.2f}'
+dir_name = f'/mnt/j/KAW_simulation_data/single_test_particle/keisan/test_particle_simulation_detrapped_phase_edgedefinition/forpaper/Kperp_eq_{initial_Kperp_eq_min_eV:.4f}_{initial_Kperp_eq_max_eV:.4f}_eV_S_{initial_S_value_min:.4f}_{initial_S_value_max:.4f}_{separate_number_mesh}_{separate_number_psi}_{grid_scale}_psi_exit_{(psi_exit/np.pi):.2f}_forpaper'
 os.makedirs(dir_name, exist_ok=True)
 
 def psi_max_function(S_value, psi):
@@ -494,6 +495,51 @@ for count_i in range(Kperp_S_value_grid_number):
 
     fig.suptitle(r'$\mu = %.3f \, \mathrm{eV/nT}, \, S_{\mathrm{i}} = %.4f$' % (initial_mu_main / elementary_charge / 1E9, initial_S_value_main))
 
+    # save data file
+    data_name = fig_name.replace('.png', '.nc')
+    nc_dataset = nc.Dataset(data_name, 'w', format='NETCDF4')
+
+    nc_initial_condition = nc_dataset.createGroup('initial_condition')
+    
+    nc_Kperp_eq = nc_initial_condition.createVariable('Kperp_eq', np.dtype('float64').char)
+    nc_Kperp_eq.units = 'eV'
+    nc_Kperp_eq.long_name = 'equatorial perpendicular kinetic energy of the electron'
+    nc_Kperp_eq[:] = initial_Kperp_eq_main
+
+    nc_S_value = nc_initial_condition.createVariable('init_S_value', np.dtype('float64').char)
+    nc_S_value.units = ''
+    nc_S_value.long_name = 'initial inhomogeneity factor'
+    nc_S_value[:] = initial_S_value_main
+
+    nc_psi_exit = nc_initial_condition.createVariable('psi_exit', np.dtype('float64').char)
+    nc_psi_exit.units = 'rad'
+    nc_psi_exit.long_name = 'exit psi'
+    nc_psi_exit[:] = psi_exit
+
+    nc_mu = nc_initial_condition.createVariable('mu', np.dtype('float64').char)
+    nc_mu.units = 'eV/nT'
+    nc_mu.long_name = 'first adiabatic invariant of the electron'
+    nc_mu[:] = initial_mu_main / elementary_charge / 1E9
+
+    nc_initial_condition.createDimension('separate_number_psi', separate_number_psi)
+    nc_initial_condition.createDimension('separate_theta_sign', 2)
+
+    nc_psi = nc_initial_condition.createVariable('init_psi', np.dtype('float64').char, ('separate_number_psi'))
+    nc_psi.units = 'rad'
+    nc_psi.long_name = 'initial psi'
+    nc_psi[:] = initial_psi_main
+
+    nc_mlat_rad = nc_initial_condition.createVariable('init_mlat_rad', np.dtype('float64').char, ('separate_number_psi', 'separate_theta_sign'))
+    nc_mlat_rad.units = 'rad'
+    nc_mlat_rad.long_name = 'initial magnetic latitude'
+    nc_mlat_rad[:, :] = initial_mlat_rad_main
+
+    nc_theta = nc_initial_condition.createVariable('init_theta', np.dtype('float64').char, ('separate_number_psi', 'separate_theta_sign'))
+    nc_theta.units = 'rad/s'
+    nc_theta.long_name = 'initial theta'
+    nc_theta[:, :] = initial_theta_main
+
+
     for count_j in range(2):
         if __name__ == '__main__':
             args = []
@@ -513,6 +559,62 @@ for count_i in range(Kperp_S_value_grid_number):
                 pitch_angle_array = np.where(pitch_angle_array < 0E0, pitch_angle_array + np.pi, pitch_angle_array)
                 pitch_angle_array = pitch_angle_array * 180E0 / np.pi
 
+                # save data file
+                nc_group = nc_dataset.createGroup(f'psi_{psi_array_RK4[0]:.4f}_theta_{theta_array_RK4[0]:.4f}')
+                nc_group.createDimension('time', time_array_RK4.size)
+                
+                nc_time = nc_group.createVariable('time', np.dtype('float64').char, ('time'))
+                nc_time.units = 's'
+                nc_time.long_name = 'time'
+                nc_time[:] = time_array_RK4
+
+                nc_mlat_rad = nc_group.createVariable('mlat_rad', np.dtype('float64').char, ('time'))
+                nc_mlat_rad.units = 'rad'
+                nc_mlat_rad.long_name = 'magnetic latitude'
+                nc_mlat_rad[:] = mlat_rad_array_RK4
+
+                nc_theta = nc_group.createVariable('theta', np.dtype('float64').char, ('time'))
+                nc_theta.units = 'rad/s'
+                nc_theta.long_name = 'theta'
+                nc_theta[:] = theta_array_RK4
+
+                nc_psi = nc_group.createVariable('psi', np.dtype('float64').char, ('time'))
+                nc_psi.units = 'rad'
+                nc_psi.long_name = 'psi'
+                nc_psi[:] = psi_array_RK4
+
+                nc_S_value = nc_group.createVariable('S_value', np.dtype('float64').char, ('time'))
+                nc_S_value.units = ''
+                nc_S_value.long_name = 'inhomogeneity factor'
+                nc_S_value[:] = S_value_array_RK4
+
+                nc_vpara = nc_group.createVariable('vpara', np.dtype('float64').char, ('time'))
+                nc_vpara.units = 'c'
+                nc_vpara.long_name = 'parallel velocity'
+                nc_vpara[:] = vpara_array_RK4 / speed_of_light
+
+                nc_Ktotal = nc_group.createVariable('energy', np.dtype('float64').char, ('time'))
+                nc_Ktotal.units = 'eV'
+                nc_Ktotal.long_name = 'total energy of the electron'
+                nc_Ktotal[:] = K_array_eV_RK4
+
+                nc_alpha = nc_group.createVariable('alpha', np.dtype('float64').char, ('time'))
+                nc_alpha.units = 'deg'
+                nc_alpha.long_name = 'pitch angle'
+                nc_alpha[:] = pitch_angle_array
+
+                nc_trapping_frequency = nc_group.createVariable('trapping_frequency', np.dtype('float64').char, ('time'))
+                nc_trapping_frequency.units = 'rad/s'
+                nc_trapping_frequency.long_name = 'trapping frequency'
+                nc_trapping_frequency[:] = trapping_frequency_array_RK4
+
+                nc_d_K_d_t_eV_s = nc_group.createVariable('d_K_d_t_eV_s', np.dtype('float64').char, ('time'))
+                nc_d_K_d_t_eV_s.units = 'eV/s'
+                nc_d_K_d_t_eV_s.long_name = 'time derivative of the total energy of the electron'
+                nc_d_K_d_t_eV_s[:] = d_K_d_t_eV_s_array_RK4
+
+
+                # plot
                 initial_psi_color = psi_array_RK4[0] / np.pi * np.ones(mlat_deg_array_RK4.size)
 
                 ax_1_1.scatter(mlat_deg_array_RK4, vpara_array_RK4 / speed_of_light, s=0.5, c=initial_psi_color, cmap=cmap_color, norm=norm)
@@ -625,6 +727,86 @@ for count_i in range(Kperp_S_value_grid_number):
     fig.savefig(fig_name)
     fig.savefig(fig_name.replace('.png', '.pdf'))
     plt.close()
+
+    nc_background = nc_dataset.createGroup('background')
+    nc_background.createDimension('mlat_deg', mlat_deg_array_for_background.size)
+
+    nc_mlat_deg = nc_background.createVariable('mlat_deg', np.dtype('float64').char, ('mlat_deg'))
+    nc_mlat_deg.units = 'deg'
+    nc_mlat_deg.long_name = 'magnetic latitude'
+    nc_mlat_deg[:] = mlat_deg_array_for_background
+
+    nc_wave_phase_speed = nc_background.createVariable('Vphpara_for_background', np.dtype('float64').char, ('mlat_deg'))
+    nc_wave_phase_speed.units = 'c'
+    nc_wave_phase_speed.long_name = 'parallel wave phase speed'
+    nc_wave_phase_speed[:] = wave_phase_speed_array_for_background / speed_of_light
+
+    nc_energy_wave_phase_speed = nc_background.createVariable('Kphpara_for_background', np.dtype('float64').char, ('mlat_deg'))
+    nc_energy_wave_phase_speed.units = 'eV'
+    nc_energy_wave_phase_speed.long_name = 'parallel kinetic energy of an electron at the parallel phase speed'
+    nc_energy_wave_phase_speed[:] = energy_wave_phase_speed_array_for_background / elementary_charge
+
+    nc_energy_wave_potential = nc_background.createVariable('K_E_for_background', np.dtype('float64').char, ('mlat_deg'))
+    nc_energy_wave_potential.units = 'eV'
+    nc_energy_wave_potential.long_name = 'effective wave potential energy'
+    nc_energy_wave_potential[:] = energy_wave_potential_array_for_background / elementary_charge
+
+    nc_energy_perpendicular = nc_background.createVariable('Kperp_for_background', np.dtype('float64').char, ('mlat_deg'))
+    nc_energy_perpendicular.units = 'eV'
+    nc_energy_perpendicular.long_name = 'perpendicular kinetic energy of an electron'
+    nc_energy_perpendicular[:] = energy_perpendicular_array_for_background / elementary_charge
+
+    nc_loss_cone = nc_background.createVariable('loss_cone_for_background', np.dtype('float64').char, ('mlat_deg'))
+    nc_loss_cone.units = 'deg'
+    nc_loss_cone.long_name = 'loss cone angle'
+    nc_loss_cone[:] = loss_cone_array_for_background * 180E0 / np.pi
+
+    nc_kpara_for_background = nc_background.createVariable('kpara_for_background', np.dtype('float64').char, ('mlat_deg'))
+    nc_kpara_for_background.units = 'rad/m'
+    nc_kpara_for_background.long_name = 'parallel wave number'
+    nc_kpara_for_background[:] = kpara(mlat_rad_array_for_background)
+
+    nc_magnetic_flux_density_for_background = nc_background.createVariable('B_for_background', np.dtype('float64').char, ('mlat_deg'))
+    nc_magnetic_flux_density_for_background.units = 'nT'
+    nc_magnetic_flux_density_for_background.long_name = 'magnetic flux density'
+    nc_magnetic_flux_density_for_background[:] = magnetic_flux_density(mlat_rad_array_for_background) * 1E9
+
+    nc_delta_1 = nc_background.createVariable('delta_1', np.dtype('float64').char, ('mlat_deg'))
+    nc_delta_1.units = ''
+    nc_delta_1.long_name = 'first-order magnetic field gradient scale'
+    nc_delta_1[:] = delta(mlat_rad_array_for_background)
+
+    nc_delta_2 = nc_background.createVariable('delta_2', np.dtype('float64').char, ('mlat_deg'))
+    nc_delta_2.units = ''
+    nc_delta_2.long_name = 'second-order magnetic field gradient scale'
+    nc_delta_2[:] = delta_2(mlat_rad_array_for_background)
+
+    nc_number_density_for_background = nc_background.createVariable('n_for_background', np.dtype('float64').char)
+    nc_number_density_for_background.units = 'm^-3'
+    nc_number_density_for_background.long_name = 'number density'
+    nc_number_density_for_background = number_density(mlat_rad_array_for_background)
+
+    nc_ion_temperature_for_background = nc_background.createVariable('T_for_background', np.dtype('float64').char)
+    nc_ion_temperature_for_background.units = 'eV'
+    nc_ion_temperature_for_background.long_name = 'ion temperature'
+    nc_ion_temperature_for_background = ion_temperature(mlat_rad_array_for_background)
+
+    nc_tau_for_background = nc_background.createVariable('tau_for_background', np.dtype('float64').char)
+    nc_tau_for_background.units = ''
+    nc_tau_for_background.long_name = 'ion-to-electron temperature ratio'
+    nc_tau_for_background = tau(mlat_rad_array_for_background)
+
+    nc_ion_plasma_beta_for_background = nc_background.createVariable('beta_for_background', np.dtype('float64').char, ('mlat_deg'))
+    nc_ion_plasma_beta_for_background.units = ''
+    nc_ion_plasma_beta_for_background.long_name = 'ion plasma beta'
+    nc_ion_plasma_beta_for_background[:] = plasma_beta_ion(mlat_rad_array_for_background)
+
+    nc_Gamma_for_background = nc_background.createVariable('Gamma_for_background', np.dtype('float64').char, ('mlat_deg'))
+    nc_Gamma_for_background.units = ''
+    nc_Gamma_for_background.long_name = 'pitch angle coefficient'
+    nc_Gamma_for_background[:] = Gamma(mlat_rad_array_for_background)
+
+    nc_dataset.close()
 
 now = datetime.datetime.now()
 print(now, r'calculation end')
