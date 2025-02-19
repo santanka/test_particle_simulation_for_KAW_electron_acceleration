@@ -2,8 +2,7 @@ import numpy as np
 import datetime
 import os
 from multiprocessing import Pool
-from concurrent.futures import ProcessPoolExecutor
-import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 number_parallel = os.cpu_count()
 print("number_parallel = ", number_parallel)
@@ -70,6 +69,7 @@ wave_frequency = 2E0 * np.pi * 0.15    #[rad/s]
 ###### potential ######
 wave_scalar_potential_array = np.array([2E3, 2E2*np.sqrt(1E1), 2E2, 2E1*np.sqrt(1E1), 2E1])  #[V]
 #wave_scalar_potential_array = np.array([2E3])
+#wave_scalar_potential_array = np.array([2E2*np.sqrt(1E1), 2E2, 2E1*np.sqrt(1E1), 2E1])  #[V]
 print(wave_scalar_potential_array)
 ###### potential ######
 
@@ -105,7 +105,8 @@ def trapping_frequency(mlat_rad, wave_scalar_potential):
 
 # initial condition
 
-# mu = 0
+#mu = 1E0 / (magnetic_flux_density(0E0) * 1E9)    #[eV/nT]
+mu = 0E0
 
 initial_S_value_min = 1E-2
 initial_S_value_max = 1E0
@@ -184,7 +185,7 @@ for count_i in range(separate_number_mesh_S):
 # detrapped condition for mlat_rad
 
 def S_value_function(S_value, capital_theta, mlat_rad, wave_scalar_potential):
-    return S_value - energy_wave_phase_speed(mlat_rad) / energy_wave_potential(mlat_rad, wave_scalar_potential) * (1E0 + Gamma(mlat_rad)) * delta_1(mlat_rad) * (1E0 + 2E0 * trapping_frequency(mlat_rad, wave_scalar_potential) / wave_frequency * capital_theta)**2E0
+    return S_value - (np.sqrt(energy_wave_phase_speed(mlat_rad) / energy_wave_potential(mlat_rad, wave_scalar_potential)) + np.sqrt(2E0) * capital_theta)**2E0 * (1E0 + Gamma(mlat_rad)) * delta_1(mlat_rad) - magnetic_flux_density(mlat_rad) * (mu * elementary_charge * 1E9) / energy_wave_potential(mlat_rad, wave_scalar_potential) * delta_1(mlat_rad)
 
 def initial_mlat_rad_iteration(args):
     S_value, capital_theta, wave_scalar_potential = args
@@ -237,23 +238,42 @@ def make_initial_mlat_rad_array(wave_scalar_potential):
 
     return initial_mlat_rad_array
 
+def pitch_angle_function(capital_theta, mlat_rad, wave_scalar_potential):
+    vpara = (capital_theta * 2E0 * trapping_frequency(mlat_rad, wave_scalar_potential) + wave_frequency) / kpara(mlat_rad)
+    vperp = np.sqrt(2E0 * magnetic_flux_density(mlat_rad) * (mu * elementary_charge * 1E9) / electron_mass)
+    return np.arccos(vpara / np.sqrt(vpara**2E0 + vperp**2E0))  #[rad]
+
 def Delta_K_function(psi, capital_theta, mlat_rad, wave_scalar_potential):
     Kpara_KE = 2E0 * (capital_theta + np.sqrt(energy_wave_phase_speed(mlat_rad) / 2E0 / energy_wave_potential(mlat_rad, wave_scalar_potential)))**2E0
-    return np.sin(psi) / Kpara_KE
+    Kperp_KE = magnetic_flux_density(mlat_rad) * (mu * elementary_charge * 1E9) / energy_wave_potential(mlat_rad, wave_scalar_potential)
+    return np.sin(psi) / (Kpara_KE + Kperp_KE)
 
-# Delta_alpha = 0 because alpha = 0
-def Delta_Gamma_function(mlat_rad):
-    return (Gamma(mlat_rad) - 1E0) * (3E0 - Gamma(mlat_rad)) / (1E0 + Gamma(mlat_rad)) * delta_1(mlat_rad)
+def Delta_alpha_function(psi, capital_theta, mlat_rad, wave_scalar_potential):
+    alpha = pitch_angle_function(capital_theta, mlat_rad, wave_scalar_potential)
+    Kpara_KE = 2E0 * (capital_theta + np.sqrt(energy_wave_phase_speed(mlat_rad) / 2E0 / energy_wave_potential(mlat_rad, wave_scalar_potential)))**2E0
+    Kperp_KE = magnetic_flux_density(mlat_rad) * (mu * elementary_charge * 1E9) / energy_wave_potential(mlat_rad, wave_scalar_potential)
+    return Gamma(mlat_rad) * np.sin(psi)**2E0 / (1E0 + Gamma(mlat_rad) * np.cos(alpha)**2E0) * (1E0 / (Kpara_KE + Kperp_KE) * np.sin(psi) + delta_1(mlat_rad))
+
+def Delta_Gamma_function(capital_theta, mlat_rad, wave_scalar_potential):
+    alpha = pitch_angle_function(capital_theta, mlat_rad, wave_scalar_potential)
+    return (Gamma(mlat_rad) - 1E0) * (3E0 - Gamma(mlat_rad)) * np.cos(alpha)**2E0 / (1E0 + Gamma(mlat_rad) * np.cos(alpha)**2E0) * delta_1(mlat_rad)
 
 def Delta_delta_function(mlat_rad):
     return - ((Gamma(mlat_rad) - 1E0) / 2E0 * delta_1(mlat_rad) + delta_2(mlat_rad) / delta_1(mlat_rad))
 
 def Delta_S_function(psi, capital_theta, mlat_rad, wave_scalar_potential):
-    return Delta_K_function(psi, capital_theta, mlat_rad, wave_scalar_potential) + Delta_Gamma_function(mlat_rad) - Delta_delta_function(mlat_rad)
+    return Delta_K_function(psi, capital_theta, mlat_rad, wave_scalar_potential) + Delta_alpha_function(psi, capital_theta, mlat_rad, wave_scalar_potential) + Delta_Gamma_function(capital_theta, mlat_rad, wave_scalar_potential) - Delta_delta_function(mlat_rad)
 
 def d_f_d_t(S_value, psi, capital_theta, mlat_rad, wave_scalar_potential):
     kpara_vpara = capital_theta * 2E0 * trapping_frequency(mlat_rad, wave_scalar_potential) + wave_frequency
-    return kpara_vpara * ((1E0 + Gamma(mlat_rad)) * delta_1(mlat_rad) * capital_theta**2E0 - 5E-1 * (psi + np.pi - np.arcsin(S_value)) * Delta_S_function(psi, capital_theta, mlat_rad, wave_scalar_potential) * S_value)
+    dfdt =  kpara_vpara * ((1E0 + Gamma(mlat_rad)) * delta_1(mlat_rad) * capital_theta**2E0 - 5E-1 * (psi + np.pi - np.arcsin(S_value)) * Delta_S_function(psi, capital_theta, mlat_rad, wave_scalar_potential) * S_value)
+    return dfdt
+
+#def dS_dt_W_value(S_value, theta, mlat_rad, wave_scalar_potential):
+#    return (((1E0 + Gamma(mlat_rad)) / 2E0 - delta_2(mlat_rad) / delta_1(mlat_rad)**2E0) * S_value - energy_wave_phase_speed(mlat_rad) / energy_wave_potential(mlat_rad, wave_scalar_potential) * ((Gamma(mlat_rad))**2E0 - 3E0 * Gamma(mlat_rad) + 3E0) * delta_1(mlat_rad) * (1E0 + theta / wave_frequency)**2E0) / (1E0 + Gamma(mlat_rad))   #[]
+
+#def d_f_d_t(S_value, psi, capital_theta, mlat_rad, wave_scalar_potential):
+#    return - trapping_frequency(mlat_rad, wave_scalar_potential) * (capital_theta + np.sqrt(energy_wave_phase_speed(mlat_rad) / 2E0 / energy_wave_potential(mlat_rad, wave_scalar_potential))) * (1E0 + Gamma(mlat_rad)) * delta_1(mlat_rad) * ((np.sin(psi) + dS_dt_W_value(S_value, 2E0*trapping_frequency(mlat_rad, wave_scalar_potential)*capital_theta, mlat_rad, wave_scalar_potential)) * (psi + np.pi - np.arcsin(S_value)) - 2E0 * capital_theta**2E0)
 
 def detrapped_condition_check(S_value, psi, capital_theta, mlat_rad, wave_scalar_potential):
     if abs(S_value) > 1E0:
@@ -264,14 +284,20 @@ def detrapped_condition_check(S_value, psi, capital_theta, mlat_rad, wave_scalar
         return False, np.nan
     elif mlat_rad != mlat_rad or mlat_rad < 0E0 or mlat_rad > mlat_upper_limit_rad:
         return False, np.nan
-    elif d_f_d_t(S_value, psi, capital_theta, mlat_rad, wave_scalar_potential) <= 0E0:
-        return False, d_f_d_t(S_value, psi, capital_theta, mlat_rad, wave_scalar_potential)
     else:
-        return True, d_f_d_t(S_value, psi, capital_theta, mlat_rad, wave_scalar_potential)
+        df_dt = d_f_d_t(S_value, psi, capital_theta, mlat_rad, wave_scalar_potential)
+        error_value = 1E-3
+        if df_dt <= error_value:
+            return False, df_dt
+        else:
+            return True, df_dt
 
 # test particle simulation using 4th order Runge-Kutta method
 def S_value_for_TPS(theta, mlat_rad, wave_scalar_potential):
-    return energy_wave_phase_speed(mlat_rad) / energy_wave_potential(mlat_rad, wave_scalar_potential) * (1E0 + Gamma(mlat_rad)) * delta_1(mlat_rad) * (1E0 + theta / wave_frequency)**2E0
+    capital_theta = theta / 2E0 / trapping_frequency(mlat_rad, wave_scalar_potential)
+    Kpara_KE = 2E0 * (capital_theta + np.sqrt(energy_wave_phase_speed(mlat_rad) / 2E0 / energy_wave_potential(mlat_rad, wave_scalar_potential)))**2E0
+    Kperp_KE = magnetic_flux_density(mlat_rad) * (mu * elementary_charge * 1E9) / energy_wave_potential(mlat_rad, wave_scalar_potential)
+    return Kpara_KE * (1E0 + Gamma(mlat_rad)) * delta_1(mlat_rad) + Kperp_KE * delta_1(mlat_rad)
 
 def d_psi_d_t(theta):
     return theta
@@ -289,28 +315,51 @@ def RK4_TPS(mlat_rad_0, theta_0, psi_0, wave_scalar_potential, time):
     k1_mlat_rad = d_mlat_rad_d_t(theta_0, mlat_rad_0)
     k1_theta = d_theta_d_t(psi_0, theta_0, mlat_rad_0, wave_scalar_potential)
     k1_psi = d_psi_d_t(theta_0)
+    if k1_mlat_rad < 0E0:
+        return 0E0, np.nan, np.nan, np.nan
 
     # 2nd step
     k2_mlat_rad = d_mlat_rad_d_t(theta_0 + dt / 2E0 * k1_theta, mlat_rad_0 + dt / 2E0 * k1_mlat_rad)
     k2_theta = d_theta_d_t(psi_0 + dt / 2E0 * k1_psi, theta_0 + dt / 2E0 * k1_theta, mlat_rad_0 + dt / 2E0 * k1_mlat_rad, wave_scalar_potential)
     k2_psi = d_psi_d_t(theta_0 + dt / 2E0 * k1_theta)
+    if k2_mlat_rad < 0E0:
+        return 0E0, np.nan, np.nan, np.nan
 
     # 3rd step
     k3_mlat_rad = d_mlat_rad_d_t(theta_0 + dt / 2E0 * k2_theta, mlat_rad_0 + dt / 2E0 * k2_mlat_rad)
     k3_theta = d_theta_d_t(psi_0 + dt / 2E0 * k2_psi, theta_0 + dt / 2E0 * k2_theta, mlat_rad_0 + dt / 2E0 * k2_mlat_rad, wave_scalar_potential)
     k3_psi = d_psi_d_t(theta_0 + dt / 2E0 * k2_theta)
+    if k3_mlat_rad < 0E0:
+        return 0E0, np.nan, np.nan, np.nan
 
     # 4th step
     k4_mlat_rad = d_mlat_rad_d_t(theta_0 + dt * k3_theta, mlat_rad_0 + dt * k3_mlat_rad)
     k4_theta = d_theta_d_t(psi_0 + dt * k3_psi, theta_0 + dt * k3_theta, mlat_rad_0 + dt * k3_mlat_rad, wave_scalar_potential)
     k4_psi = d_psi_d_t(theta_0 + dt * k3_theta)
+    if k4_mlat_rad < 0E0:
+        return 0E0, np.nan, np.nan, np.nan
 
     # update
     mlat_rad_1 = mlat_rad_0 + dt / 6E0 * (k1_mlat_rad + 2E0 * k2_mlat_rad + 2E0 * k3_mlat_rad + k4_mlat_rad)
     theta_1 = theta_0 + dt / 6E0 * (k1_theta + 2E0 * k2_theta + 2E0 * k3_theta + k4_theta)
     psi_1 = psi_0 + dt / 6E0 * (k1_psi + 2E0 * k2_psi + 2E0 * k3_psi + k4_psi)
+    if mlat_rad_1 < 0E0:
+        return 0E0, np.nan, np.nan, np.nan
 
     return mlat_rad_1, theta_1, psi_1, time + dt
+
+def f_function(S_value, psi, capital_theta):
+    if np.abs(S_value) > 1E0:
+        return np.nan
+    else:
+        return capital_theta**2E0 - 5E-1 * (np.cos(psi) + np.sqrt(1E0 - S_value**2E0) - S_value * (psi + np.pi - np.arcsin(S_value)))
+
+def psi_u_function(S_value):
+    if np.abs(S_value) > 1E0:
+        return np.nan
+    else:
+        psi_u = - np.pi + np.arcsin(S_value)
+        return psi_u
 
 def reach_ionosphere_check(args):
     initial_mlat_rad, initial_theta, initial_psi, wave_scalar_potential, detrap_flag = args
@@ -321,7 +370,7 @@ def reach_ionosphere_check(args):
     while True:
         mlat_rad_new, theta_new, psi_new, time_new = RK4_TPS(initial_mlat_rad, initial_theta, initial_psi, wave_scalar_potential, time)
 
-        if mlat_rad_new / np.pi * 180E0 < 0E0:
+        if mlat_rad_new / np.pi * 180E0 <= 0E0:
             return False, np.nan, np.nan
         
         elif mlat_rad_new != mlat_rad_new or theta_new != theta_new or psi_new != psi_new:
@@ -329,19 +378,33 @@ def reach_ionosphere_check(args):
             quit()
 
         elif mlat_rad_new / np.pi * 180E0 >= mlat_upper_limit_deg:
-            energy_ionosphere = 5E-1 * electron_mass * ((theta_new + wave_frequency) / kpara(mlat_rad_new))**2E0 / elementary_charge   #[eV]
+            energy_ionosphere = 5E-1 * electron_mass * ((theta_new + wave_frequency) / kpara(mlat_rad_new))**2E0 / elementary_charge + magnetic_flux_density(mlat_rad_new) * (mu * 1E9)  #[eV]
             return True, time_new, energy_ionosphere
         
         else:
-            initial_mlat_rad = mlat_rad_new
-            initial_theta = theta_new
-            initial_psi = psi_new
-            time = time_new
+            capital_theta = theta_new / 2E0 / trapping_frequency(mlat_rad_new, wave_scalar_potential)
+            S_value = S_value_for_TPS(theta_new, mlat_rad_new, wave_scalar_potential)
+            psi_mod = np.mod(psi_new + np.pi, 2E0 * np.pi) - np.pi
+            f_function_value = f_function(S_value, psi_mod, capital_theta)
+            if f_function_value == f_function_value and f_function_value < 0E0:
+                psi_u = psi_u_function(S_value)
+                if psi_u <= psi_mod:
+                    return False, np.nan, np.nan
+                else:
+                    initial_mlat_rad = mlat_rad_new
+                    initial_theta = theta_new
+                    initial_psi = psi_new
+                    time = time_new
+            else:
+                initial_mlat_rad = mlat_rad_new
+                initial_theta = theta_new
+                initial_psi = psi_new
+                time = time_new
 
 
 # output csv file
 def output_data_path(wave_scalar_potential):
-    return f'{dir_name}/wave_scalar_potential_{wave_scalar_potential:.1e}.csv'
+    return f'{dir_name}/mu_{mu:.4f}_wave_scalar_potential_{wave_scalar_potential:.4f}.csv'
 
 # main
 
@@ -373,8 +436,11 @@ def main_each_potential(wave_scalar_potential):
                 #print(mlat_rad_count_k / np.pi * 180E0, initial_S_value_array[count_i], psi_count_j, capital_theta_count_k, detrap_flag, d_f_d_t_value)
 
     results = []
+    #with Pool(number_parallel) as p:
+        #results = p.map(reach_ionosphere_check, args)
+    # tqdmを使用して進捗を表示
     with Pool(number_parallel) as p:
-        results = p.map(reach_ionosphere_check, args)
+        results = list(tqdm(p.imap(reach_ionosphere_check, args), total=len(args)))
     
     for count_i in range(separate_number_mesh_S):
         S_count_i = initial_S_value_array[count_i]
@@ -385,7 +451,7 @@ def main_each_potential(wave_scalar_potential):
                 mlat_rad_count_k = initial_mlat_rad_array[count_i, count_j, count_k]
                 theta_count_k = capital_theta_count_k * 2E0 * trapping_frequency(mlat_rad_count_k, wave_scalar_potential)
                 vpara_initial = (theta_count_k + wave_frequency) / kpara(mlat_rad_count_k) / speed_of_light
-                energy_initial = 5E-1 * electron_mass * (vpara_initial * speed_of_light)**2E0 / elementary_charge
+                energy_initial = 5E-1 * electron_mass * (vpara_initial * speed_of_light)**2E0 / elementary_charge + magnetic_flux_density(mlat_rad_count_k) * (mu * 1E9)
                 
                 count_ijk = count_i * separate_number_mesh_psi * 2 + count_j * 2 + count_k
                 if results[count_ijk][0]:
