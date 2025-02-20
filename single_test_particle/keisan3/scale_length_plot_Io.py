@@ -23,25 +23,11 @@ electron_mass = 9.10938356E-31    # [kg]
 # magnetic flux density: dipole model
 # number density: centrifugal scale height model
 
-L_number = 9.65   # Europa's L number (mean) (Bagenal et al., 2015)
+L_number = 5.91  
 Radius_Jupiter = 71492E3   # [m] (equatorial radius)
 
 Time_rotation_Jupiter = 9.9258E0 * 3600E0   # [s]
 Omega_Jupiter = 2E0 * np.pi / Time_rotation_Jupiter   # [rad/s]
-
-# centrifugal scale height model (Thomas et al., 2004)
-ion_temperature = 88E0   # [eV] (Bagenal et al., 2015)
-electron_temperature = 20E0   # [eV] (Bagenal et al., 2015)
-ion_charge_number = 1.4E0   # (Bagenal et al., 2015)
-ion_mass_number = 18E0   # (Bagenal et al., 2015)
-electron_number_density_eq = 158E6   # [m-3] (Bagenal et al., 2015)
-ion_number_density_eq = electron_number_density_eq / ion_charge_number   # [m-3]
-
-def centrifugal_scale_height():
-    return np.sqrt(2E0 * (ion_temperature + ion_charge_number * electron_temperature) * elementary_charge / 3E0 / ion_mass_number / proton_mass / Omega_Jupiter**2E0)   # [m]
-
-H_centrifugal = centrifugal_scale_height()  # [m]
-print(f'centrifugal scale height: {H_centrifugal / Radius_Jupiter} R_J')
 
 # 自転軸の角度
 alpha_rot_deg_list = [-9.6, 0.0, 9.6]   # [deg] (Thomas et al., 2004)
@@ -72,6 +58,21 @@ def distance_from_magnetic_equator(mlat_rad):
 distance_from_magnetic_equator_array = distance_from_magnetic_equator(mlat_rad_array)
 
 
+# centrifugal scale height model (Phipps et al., 2018)
+ion_temperature = 81.4E0   # [eV] (Phipps et al., 2018)
+electron_temperature = 5E0   # [eV] (Bagenal, 1994)
+tau = ion_temperature / electron_temperature
+ion_charge_number = 1E0   #
+ion_mass_number = 24.4E0   # (Phipps et al., 2018)
+electron_number_density_eq = 3350E6   # [m-3] (Phipps et al., 2018)
+
+def centrifugal_scale_height():
+    return np.sqrt(2E0 * (ion_temperature + ion_charge_number * electron_temperature) * elementary_charge / 3E0 / ion_mass_number / proton_mass / Omega_Jupiter**2E0)   # [m]
+
+H_centrifugal = centrifugal_scale_height()   # [m]
+print(f'centrifugal scale height: {H_centrifugal / Radius_Jupiter} R_J')
+
+
 # height from the centrifugal equator
 def height_from_centrifugal_equator_function(mlat_rad, alpha_rot_rad):
     lambda_0_rad = centrifugal_equator_mlat_rad(alpha_rot_rad)
@@ -80,7 +81,6 @@ def height_from_centrifugal_equator_function(mlat_rad, alpha_rot_rad):
 def distance_from_center_to_centrifugal_equator_location(mlat_rad, alpha_rot_rad):
     lambda_0_rad = centrifugal_equator_mlat_rad(alpha_rot_rad)
     return Radius_Jupiter * L_number * np.cos(mlat_rad)**2E0 * np.cos(mlat_rad - lambda_0_rad)  # [m]
-
 
 # number density gradient scale length
 def electron_number_density_function(mlat_rad, alpha_rot_rad):
@@ -126,54 +126,77 @@ def magnetic_field_gradient_scale_length_function(mlat_rad):
 magnetic_field_gradient_scale_length_array = magnetic_field_gradient_scale_length_function(mlat_rad_array)
 
 
-# wave length of the whistler mode chorus wave
-def electron_cyclotron_frequency(mlat_rad):
-    return elementary_charge * magnetic_flux_density(mlat_rad) / electron_mass # [rad/s]
+# Alfven speed
+def Alfven_speed_function(mlat_rad, alpha_rot_rad):
+    return magnetic_flux_density(mlat_rad) / np.sqrt(magnetic_constant * electron_number_density_function(mlat_rad, alpha_rot_rad) / ion_charge_number * ion_mass_number * proton_mass)   # [m s-1]
 
-def electron_plasma_frequency(mlat_rad, alpha_rot_rad):
-    return elementary_charge / np.sqrt(electron_mass * electric_constant) * np.sqrt(electron_number_density_function(mlat_rad, alpha_rot_rad))   # [rad/s]
+# ion Larmor radius
+def ion_Larmor_radius_function(mlat_rad):
+    return np.sqrt(2E0 * ion_mass_number * proton_mass * ion_temperature * elementary_charge) / elementary_charge / ion_charge_number / magnetic_flux_density(mlat_rad)   # [m]
 
-def whistler_mode_chorus_wave_length(mlat_rad, alpha_rot_rad, wave_frequency):
-    return 2E0 * np.pi * speed_of_light / np.sqrt(wave_frequency**2E0 + wave_frequency * electron_plasma_frequency(mlat_rad, alpha_rot_rad)**2E0 / (electron_cyclotron_frequency(mlat_rad) - wave_frequency))   # [m]
+# ion plasma beta
+def ion_plasma_beta_function(mlat_rad, alpha_rot_rad):
+    return 2E0 * magnetic_constant * electron_number_density_function(mlat_rad, alpha_rot_rad) / ion_charge_number * ion_temperature * elementary_charge / magnetic_flux_density(mlat_rad)**2E0   # []
 
-# Lambda in Omura et al. (2009)
-def Lambda_value_function(mlat_rad, alpha_rot_rad, wave_frequency):
-    return 1E0 - (electron_cyclotron_frequency(mlat_rad) - wave_frequency) / electron_cyclotron_frequency(mlat_rad) * magnetic_field_gradient_scale_length_function(mlat_rad) / number_density_gradient_scale_length_function(mlat_rad, alpha_rot_rad)   # []
+# perpendicular KAW wavelength
+kperp_rho_i = 2E0 * np.pi
+def perpendicular_KAW_wavelength_function(mlat_rad):
+    return 2E0 * np.pi * ion_Larmor_radius_function(mlat_rad) / kperp_rho_i   # [m]
 
-frequency_at_equator_list = np.asarray([0.25E0, 0.75E0]) * electron_cyclotron_frequency(0E0)   # [rad/s]
+# parallel KAW wavelength
+wave_frequency = 2.5E0   # [Hz]
+wave_anguler_frequency = wave_frequency * 2E0 * np.pi   # [rad s-1]
 
-whistler_mode_chorus_wave_length_array = np.zeros((len(mlat_rad_array), len(alpha_rot_rad_list), len(frequency_at_equator_list)))
-Lambda_value_array = np.zeros((len(mlat_rad_array), len(alpha_rot_rad_list), len(frequency_at_equator_list)))
-for count_i, count_j, count_k in np.ndindex(whistler_mode_chorus_wave_length_array.shape):
-    whistler_mode_chorus_wave_length_array[count_i, count_j, count_k] = whistler_mode_chorus_wave_length(mlat_rad_array[count_i], alpha_rot_rad_list[count_j], frequency_at_equator_list[count_k])
-    Lambda_value_array[count_i, count_j, count_k] = Lambda_value_function(mlat_rad_array[count_i], alpha_rot_rad_list[count_j], frequency_at_equator_list[count_k])
+def parallel_KAW_wavelength_function(mlat_rad, alpha_rot_rad):
+    return (2E0 * np.pi)**2E0 * Alfven_speed_function(mlat_rad, alpha_rot_rad) / wave_anguler_frequency * np.sqrt((1E0 + tau) / (ion_plasma_beta_function(mlat_rad, alpha_rot_rad) * (1E0 + tau) + 2E0 * tau))   # [m]
+
+# KAW pitch angle coefficient
+def KAW_pitch_angle_coefficient_function(mlat_rad, alpha_rot_rad):
+    return 1E0 + 2E0 * ion_plasma_beta_function(mlat_rad, alpha_rot_rad) * (1E0 + tau) / (ion_plasma_beta_function(mlat_rad, alpha_rot_rad) * (1E0 + tau) + 2E0 * tau)   # []
+
+
+ion_Larmor_radius_array = ion_Larmor_radius_function(magnetic_flux_density_array)
+perpendicular_KAW_wavelength_array = perpendicular_KAW_wavelength_function(magnetic_flux_density_array)
+Alfven_speed_array = np.zeros_like(electron_number_density_array)
+ion_plasma_beta_array = np.zeros_like(electron_number_density_array)
+parallel_KAW_wavelength_array = np.zeros_like(electron_number_density_array)
+KAW_pitch_angle_coefficient_array = np.zeros_like(electron_number_density_array)
+for count_i in range(len(alpha_rot_rad_list)):
+    Alfven_speed_array[:, count_i] = Alfven_speed_function(mlat_rad_array, alpha_rot_rad_list[count_i])
+    ion_plasma_beta_array[:, count_i] = ion_plasma_beta_function(mlat_rad_array, alpha_rot_rad_list[count_i])
+    parallel_KAW_wavelength_array[:, count_i] = parallel_KAW_wavelength_function(mlat_rad_array, alpha_rot_rad_list[count_i])
+    KAW_pitch_angle_coefficient_array[:, count_i] = KAW_pitch_angle_coefficient_function(mlat_rad_array, alpha_rot_rad_list[count_i])
 
 
 # plot
 def plot_each_alpha_rot(fig, axes, alpha_rot_index):
     ax0 = fig.add_subplot(axes[0], xlabel=r'MLAT $\lambda$ [deg]', ylabel=r'$\alpha_{\mathrm{rot}} = %.1f$ [deg]' % alpha_rot_deg_list[alpha_rot_index] + '\n' + r'Ratio')
     ax1 = fig.add_subplot(axes[1], xlabel=r'MLAT $\lambda$ [deg]', ylabel=r'Length [m]', yscale='log')
-    ax2 = fig.add_subplot(axes[2], xlabel=r'MLAT $\lambda$ [deg]', ylabel=r'$\Lambda$')
+    ax2 = fig.add_subplot(axes[2], xlabel=r'MLAT $\lambda$ [deg]', ylabel=r'$\mathrm{max} (|S_{\mathrm{n}} / S_{\mathrm{B}}|)$')
 
-    ax0.plot(mlat_deg_array, electron_number_density_array[:, alpha_rot_index] / electron_number_density_eq, label=r'$n_{\mathrm{e}} / n_{\mathrm{e, ceq}}$', color=r'orange', linewidth=4, alpha=0.6)
+    alpha_rot_rad = alpha_rot_rad_list[alpha_rot_index]
+    lambda_0 = centrifugal_equator_mlat_rad(alpha_rot_rad)
+
+    ax0.plot(mlat_deg_array, electron_number_density_array[:, alpha_rot_index] / electron_number_density_function(lambda_0, alpha_rot_rad), label=r'$n_{\mathrm{e}} / n_{\mathrm{e, ceq}}$', color=r'orange', linewidth=4, alpha=0.6)
     ax0.plot(mlat_deg_array, magnetic_flux_density_array / magnetic_flux_density(0E0), label=r'$B / B_{\mathrm{eq}}$', color=r'purple', linewidth=4, alpha=0.6)
+    ax0.plot(mlat_deg_array, Alfven_speed_array[:, alpha_rot_index] / Alfven_speed_function(0E0, alpha_rot_rad), label=r'$v_{\mathrm{A}} / v_{\mathrm{A, eq}}$', color=r'blue', linewidth=4, alpha=0.6)
+    ax0.plot(mlat_deg_array, ion_plasma_beta_array[:, alpha_rot_index] / ion_plasma_beta_function(0E0, alpha_rot_rad), label=r'$\beta_{\mathrm{i}} / \beta_{\mathrm{i, eq}}$', color=r'green', linewidth=4, alpha=0.6)
     ax0.axvline(centrifugal_equator_mlat_deg_list[alpha_rot_index], color='red', linestyle='--', linewidth=4, alpha=0.3)
     ax0.legend()
     ax0_ylim = ax0.get_ylim()
     if ax0_ylim[0] < 0E0:
         ax0.set_ylim([0E0, ax0_ylim[1]])
+    ax0.set_title(r'$v_{\mathrm{A, eq}} = %.2g$ c, $\beta_{\mathrm{i, eq}} = %.2g$' % (Alfven_speed_function(0E0, alpha_rot_rad) / speed_of_light, ion_plasma_beta_function(0E0, alpha_rot_rad)))
 
     ax1.plot(mlat_deg_array, np.abs(number_density_gradient_scale_length_array[:, alpha_rot_index]), label=r'$| L_{\mathrm{n}} |$', color=r'orange', linewidth=4, alpha=0.6)
     ax1.plot(mlat_deg_array, magnetic_field_gradient_scale_length_array, label=r'$L_{\mathrm{B}}$', color=r'purple', linewidth=4, alpha=0.6)
-    ax1.plot(mlat_deg_array, whistler_mode_chorus_wave_length_array[:, alpha_rot_index, 0], label=r'$\Lambda_{%.2f}$' % (frequency_at_equator_list[0] / electron_cyclotron_frequency(0E0)), color=r'blue', linewidth=4, alpha=0.6)
-    ax1.plot(mlat_deg_array, whistler_mode_chorus_wave_length_array[:, alpha_rot_index, 1], label=r'$\Lambda_{%.2f}$' % (frequency_at_equator_list[1] / electron_cyclotron_frequency(0E0)), color=r'green', linewidth=4, alpha=0.6)
+    ax1.plot(mlat_deg_array, perpendicular_KAW_wavelength_array, label=r'$\Lambda_{\perp}$', color=r'blue', linewidth=4, alpha=0.6)
+    ax1.plot(mlat_deg_array, parallel_KAW_wavelength_array[:, alpha_rot_index], label=r'$\Lambda_{\parallel}$', color=r'green', linewidth=4, alpha=0.6)
     ax1.axvline(centrifugal_equator_mlat_deg_list[alpha_rot_index], color='red', linestyle='--', linewidth=4, alpha=0.3)
-    ax1.legend(loc='lower right')
+    ax1.legend()
 
-    ax2.plot(mlat_deg_array, Lambda_value_array[:, alpha_rot_index, 0], label=r'$\Lambda_{%.2f}$' % (frequency_at_equator_list[0] / electron_cyclotron_frequency(0E0)), color=r'blue', linewidth=4, alpha=0.6)
-    ax2.plot(mlat_deg_array, Lambda_value_array[:, alpha_rot_index, 1], label=r'$\Lambda_{%.2f}$' % (frequency_at_equator_list[1] / electron_cyclotron_frequency(0E0)), color=r'green', linewidth=4, alpha=0.6)
+    ax2.plot(mlat_deg_array, np.abs(magnetic_field_gradient_scale_length_array / number_density_gradient_scale_length_array[:, alpha_rot_index] / 2E0), color=r'orange', linewidth=4, alpha=0.6)
     ax2.axvline(centrifugal_equator_mlat_deg_list[alpha_rot_index], color='red', linestyle='--', linewidth=4, alpha=0.3)
-    ax2.legend()
 
     axes = [ax0, ax1, ax2]
     ax_number = 1
@@ -202,7 +225,6 @@ fig = main_plot()
 if not os.path.exists(dir_name):
     os.makedirs(dir_name)
 
-fig.savefig(f'{dir_name}/scale_length_plot_Europa.png')
-fig.savefig(f'{dir_name}/scale_length_plot_Europa.pdf')
+fig.savefig(f'{dir_name}/scale_length_plot_Io.png')
+fig.savefig(f'{dir_name}/scale_length_plot_Io.pdf')
 plt.close(fig)
-    
