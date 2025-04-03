@@ -12,6 +12,8 @@ plt.rcParams["font.size"] = 25
 
 dir_name = f'/mnt/j/KAW_simulation_data/single_test_particle/keisan3'
 
+#要調整
+
 # constants
 speed_of_light = 299792458E0    #[m s-1]
 elementary_charge = 1.6021766208E-19    #[A s]

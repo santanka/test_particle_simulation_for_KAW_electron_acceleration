@@ -75,7 +75,8 @@ distance_from_magnetic_equator_array = distance_from_magnetic_equator(mlat_rad_a
 # height from the centrifugal equator
 def height_from_centrifugal_equator_function(mlat_rad, alpha_rot_rad):
     lambda_0_rad = centrifugal_equator_mlat_rad(alpha_rot_rad)
-    return Radius_Jupiter * L_number * np.cos(mlat_rad)**2E0 * np.sin(mlat_rad - lambda_0_rad)  # [m]
+    #return Radius_Jupiter * L_number * np.cos(mlat_rad)**2E0 * np.sin(mlat_rad - lambda_0_rad)  # [m]
+    return distance_from_magnetic_equator(mlat_rad) - distance_from_magnetic_equator(lambda_0_rad)  # [m] # こちらの方が正確
 
 def distance_from_center_to_centrifugal_equator_location(mlat_rad, alpha_rot_rad):
     lambda_0_rad = centrifugal_equator_mlat_rad(alpha_rot_rad)
@@ -88,8 +89,9 @@ def electron_number_density_function(mlat_rad, alpha_rot_rad):
     return electron_number_density_eq * np.exp(-height_from_centrifugal_equator**2E0 / H_centrifugal**2E0)   # [m-3]
 
 def number_density_gradient_scale_length_function(mlat_rad, alpha_rot_rad):
-    lambda_0_rad = centrifugal_equator_mlat_rad(alpha_rot_rad)
-    return - H_centrifugal**2E0 / 2E0 / Radius_Jupiter / L_number * np.sqrt(1E0 + 3E0 * np.sin(mlat_rad)**2E0) / np.cos(mlat_rad)**2E0 / (np.sin(mlat_rad - lambda_0_rad) * (np.cos(mlat_rad) * np.cos(mlat_rad - lambda_0_rad) - 2E0 * np.sin(mlat_rad) * np.sin(mlat_rad - lambda_0_rad)))   # [m]
+    #lambda_0_rad = centrifugal_equator_mlat_rad(alpha_rot_rad)
+    #return - H_centrifugal**2E0 / 2E0 / Radius_Jupiter / L_number * np.sqrt(1E0 + 3E0 * np.sin(mlat_rad)**2E0) / np.cos(mlat_rad)**2E0 / (np.sin(mlat_rad - lambda_0_rad) * (np.cos(mlat_rad) * np.cos(mlat_rad - lambda_0_rad) - 2E0 * np.sin(mlat_rad) * np.sin(mlat_rad - lambda_0_rad)))   # [m]
+    return - H_centrifugal**2E0 / 2E0 / height_from_centrifugal_equator_function(mlat_rad, alpha_rot_rad)
 
 height_from_centrifugal_equator_array = np.zeros((len(mlat_rad_array), len(alpha_rot_rad_list)))
 distance_from_center_to_centrifugal_equator_location_array = np.zeros((len(mlat_rad_array), len(alpha_rot_rad_list)))
