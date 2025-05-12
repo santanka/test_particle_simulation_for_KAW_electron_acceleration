@@ -10,8 +10,10 @@ mpl.rcParams['mathtext.fontset'] = 'cm'
 plt.rcParams["font.size"] = 25
 
 xmin = -1.5
-xmax = 6.5
-ymax = 2.5
+#xmax = 6.5  #Io
+#ymax = 2.5  #Io
+xmax = 10.5 #Europa
+ymax = 4    #Europa
 
 fig = plt.figure(figsize=(12, 7.5), dpi=500, tight_layout=True)
 ax = fig.add_subplot(111, xlabel=r'[$\mathrm{R_{J}}$]', ylabel=r'[$\mathrm{R_{J}}$]')
@@ -28,7 +30,8 @@ theta_array = np.linspace(0, 2*np.pi, 1000)
 ax.plot(np.cos(theta_array), L_poler * np.sin(theta_array), color='black', lw=2, alpha=0.6)
 
 # dipole field
-L_value = 5.91
+#L_value = 5.91 # Io
+L_value = 9.38  # Europa
 
 mlat_max = np.arccos(np.sqrt((1E0 - L_poler**2E0 + np.sqrt((1E0 - L_poler**2E0)**2E0 + 4E0 * L_poler**2E0 * L_value**2E0)) / 2E0 / L_value**2E0))
 mlat_array = np.linspace(-mlat_max, mlat_max, 1000)
@@ -64,9 +67,10 @@ x_array_Rceq_max = L_value * np.cos(lambda_0) * np.cos(mlat_typical)**2E0 * np.c
 x_array_Rceq = np.linspace(0, x_array_Rceq_max, 1000)
 #ax.plot(x_array_Rceq, np.tan(lambda_0) * x_array_Rceq, color='green', lw=2, alpha=0.6)
 
-x_array_height_min = L_value * np.cos(mlat_typical)**3E0
-x_array_height = np.linspace(x_array_height_min, x_array_Rceq_max, 1000)
-ax.plot(x_array_height, -x_array_height / np.tan(lambda_0) + L_value * np.cos(mlat_typical)**2E0 * (np.cos(mlat_typical) / np.tan(lambda_0) + np.sin(mlat_typical)), color='green', lw=2, alpha=0.6)
+mlat_typical_array = np.linspace(lambda_0, mlat_typical, 1000)
+x_array_height = L_value * np.cos(mlat_typical_array)**3E0
+y_array_height = L_value * np.sin(mlat_typical_array) * np.cos(mlat_typical_array)**2E0
+ax.plot(x_array_height, y_array_height, color='green', lw=2, alpha=0.6)
 
 
 
@@ -80,6 +84,6 @@ plt.ylim(-ymax, ymax)
 
 dir_name = f'/mnt/j/KAW_simulation_data/single_test_particle/keisan3'
 os.makedirs(dir_name, exist_ok=True)
-fig.savefig(f'{dir_name}/schematic_diagram_Io.pdf')
-fig.savefig(f'{dir_name}/schematic_diagram_Io.png')
+fig.savefig(f'{dir_name}/schematic_diagram_Europa.pdf')
+fig.savefig(f'{dir_name}/schematic_diagram_Europa.png')
 plt.close()

@@ -286,7 +286,7 @@ INITIAL_KPARA_EV = INI_K_EV * np.cos(INI_PITCH_ANGLE_RAD)**2E0 #[eV]
 
 INITIAL_MU = INITIAL_KPERP_EV * elementary_charge / magnetic_flux_density(initial_mlat_rad) #[J/T]
 INITIAL_THETA = kpara(initial_mlat_rad) * np.sqrt(2E0 * INITIAL_KPARA_EV * elementary_charge / electron_mass) - wave_frequency  #[rad/s]
-initial_psi = 0E0 * np.pi #[rad]
+initial_psi = 0E-1 * np.pi #[rad]
 
 dt = 1E-3
 time_end = 2E1
@@ -361,7 +361,7 @@ def main_calculation(args):
     return mlat_rad_array, theta_array, vpara_array, psi_array, time_array, trapping_frequency_array, Ktotal_energy_array, alpha_array, S_value_array, region_array, detrapped_point_array
 
 def dir_path(initial_psi):
-    dir_name = f'/mnt/j/KAW_simulation_data/single_test_particle/keisan/test_particle_simulation_Section3_contour_force_for_gakushin/{initial_psi/np.pi:.2f}_pi'
+    dir_name = f'/mnt/j/KAW_simulation_data/single_test_particle/keisan/test_particle_simulation_Section3_energy_log/{initial_psi/np.pi:.2f}_pi'
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
     return
@@ -371,52 +371,59 @@ dir_path(initial_psi)
 
 # fig path
 def fig_path(initial_K_eV, initial_pitch_angle_deg, initial_mlat_deg, initial_psi):
-    dir_name = f'/mnt/j/KAW_simulation_data/single_test_particle/keisan/test_particle_simulation_Section3_contour_force_for_gakushin/{initial_psi/np.pi:.2f}_pi'
+    dir_name = f'/mnt/j/KAW_simulation_data/single_test_particle/keisan/test_particle_simulation_Section3_energy_log/{initial_psi/np.pi:.2f}_pi'
     fig_name = f'{dir_name}/{initial_K_eV:.2f}eV_{initial_pitch_angle_deg:.2f}deg_{initial_mlat_deg:.2f}deg'
     return fig_name
 
 def main_plot(args):
     mlat_rad_array, theta_array, vpara_array, psi_array, time_array, trapping_frequency_array, Ktotal_energy_array, alpha_array, S_value_array, region_array, detrapped_point_array, mu = args
     
-    mlat_rad_array_contour, time_array_contour, psi_array_contour = wave_psi_spatial_time_variation_array(time_array[0], time_array[-1], psi_array[0], mlat_rad_array[0])
-    mesh_time_array_contour, mesh_mlat_rad_array_contour = np.meshgrid(time_array_contour, mlat_rad_array_contour)
+    #mlat_rad_array_contour, time_array_contour, psi_array_contour = wave_psi_spatial_time_variation_array(time_array[0], time_array[-1], psi_array[0], mlat_rad_array[0])
+    #mesh_time_array_contour, mesh_mlat_rad_array_contour = np.meshgrid(time_array_contour, mlat_rad_array_contour)
 
-    force_electric_field_array = np.zeros_like(psi_array_contour)
-    for count_time in range(time_array_contour.size):
-        for count_mlat in range(mlat_rad_array_contour.size):
-            force_electric_field_array[count_mlat, count_time] = force_electric_field(mesh_mlat_rad_array_contour[count_mlat, count_time], psi_array_contour[count_mlat, count_time])
+    #force_electric_field_array = np.zeros_like(psi_array_contour)
+    #for count_time in range(time_array_contour.size):
+    #    for count_mlat in range(mlat_rad_array_contour.size):
+    #        force_electric_field_array[count_mlat, count_time] = force_electric_field(mesh_mlat_rad_array_contour[count_mlat, count_time], psi_array_contour[count_mlat, count_time])
 
     detrapped_point_1 = np.where(detrapped_point_array == 1)[0]
     detrapped_point_2 = np.where(detrapped_point_array == 2)[0]
 
     fig = plt.figure(figsize=(20, 20), dpi=100)
-    gs = fig.add_gridspec(1, 2, width_ratios=[1, 0.05])
+    gs = fig.add_gridspec(1, 1)
 
-    cmap_color = cm.bwr
-    color_target = force_electric_field_array * 1E3
-    vmax_color = np.max(np.abs(color_target))
-    vmin_color = - vmax_color
-    norm_color = mpl.colors.Normalize(vmin=vmin_color, vmax=vmax_color)
-    scalarMap_color = plt.cm.ScalarMappable(norm=norm_color, cmap=cmap_color)
-    scalarMap_color.set_array([])
+    #cmap_color = cm.bwr
+    #color_target = force_electric_field_array * 1E3
+    #vmax_color = np.max(np.abs(color_target))
+    #vmin_color = - vmax_color
+    #norm_color = mpl.colors.Normalize(vmin=vmin_color, vmax=vmax_color)
+    #scalarMap_color = plt.cm.ScalarMappable(norm=norm_color, cmap=cmap_color)
+    #scalarMap_color.set_array([])
 
-    ax_cbar = fig.add_subplot(gs[0, 1])
-    cbar = fig.colorbar(scalarMap_color, cax=ax_cbar, orientation='vertical')
-    cbar.set_label(r'Force of $\delta E_{\parallel}$ [$10^{-3}$ eV/m]')
+    #ax_cbar = fig.add_subplot(gs[0, 1])
+    #cbar = fig.colorbar(scalarMap_color, cax=ax_cbar, orientation='vertical')
+    #cbar.set_label(r'Force of $\delta E_{\parallel}$ [$10^{-3}$ eV/m]')
 
-    ax = fig.add_subplot(gs[0, 0], xlabel=r'MLAT $\lambda$ [deg]', ylabel=r'Time $t$ [s]')
-    ax.contourf(mesh_mlat_rad_array_contour * 180E0 / np.pi, mesh_time_array_contour, force_electric_field_array*1E3, cmap=cmap_color, norm=norm_color, levels=1000)
-    ax.scatter(mlat_rad_array * 180E0 / np.pi, time_array, c='k', s=1, zorder=1)
-    ax.scatter(mlat_rad_array[0] * 180E0 / np.pi, time_array[0], c='lightgrey', s=200, marker='o', edgecolors='k', zorder=100)
-    ax.scatter(mlat_rad_array[-1] * 180E0 / np.pi, time_array[-1], c='orange', s=200, marker='D', edgecolors='k', zorder=100)
-    #ax.scatter(mlat_rad_array[detrapped_point_1] * 180E0 / np.pi, time_array[detrapped_point_1], c='magenta', s=1000, marker='*', edgecolors='k', zorder=100)
-    #ax.scatter(mlat_rad_array[detrapped_point_2] * 180E0 / np.pi, time_array[detrapped_point_2], c='cyan', s=1000, marker='*', edgecolors='k', zorder=100)
+    ax = fig.add_subplot(gs[0, 0], xlabel=r'Kinetic Energy [eV]', ylabel=r'Time [s]', xscale='log')
+    #ax.contourf(mesh_mlat_rad_array_contour * 180E0 / np.pi, mesh_time_array_contour, force_electric_field_array*1E3, cmap=cmap_color, norm=norm_color, levels=1000)
+    #ax.scatter(Ktotal_energy_array / elementary_charge * np.sign(vpara_array), time_array, c='k', s=1, zorder=1)
+    ax.plot(Ktotal_energy_array / elementary_charge, time_array, c='k', lw=4, zorder=2)
+    ax.scatter(Ktotal_energy_array[0] / elementary_charge, time_array[0], c='lightgrey', s=200, marker='o', edgecolors='k', zorder=100)
+    ax.scatter(Ktotal_energy_array[-1] / elementary_charge, time_array[-1], c='orange', s=200, marker='D', edgecolors='k', zorder=100)
+    #ax.scatter(Ktotal_energy_array[detrapped_point_1] / elementary_charge, time_array[detrapped_point_1], c='magenta', s=1000, marker='*', edgecolors='k', zorder=100)
+    #ax.scatter(Ktotal_energy_array[detrapped_point_2] / elementary_charge, time_array[detrapped_point_2], c='cyan', s=1000, marker='*', edgecolors='k', zorder=100)
+
+    #K_phase_speed_array = energy_wave_phase_speed(mlat_rad_array) / elementary_charge
+    #ax.plot(K_phase_speed_array, time_array, c='g', lw=4, zorder=1)
 
     ax.minorticks_on()
+    #ax.set_xscale('symlog', linthresh=1E1)
     ax.grid(which='both', alpha=0.3)
-    xlim_max = np.max(mlat_rad_array * 180E0 / np.pi)
-    ax.set_xlim(0, xlim_max)
+    #xlim_max = np.max(mlat_rad_array * 180E0 / np.pi)
+    #ax.set_xlim(0, xlim_max)
     ax.set_ylim(time_array[0], time_array[-1])
+
+    #ax.axvline(x=0E0, color='k', lw=4, ls='--', zorder=0)
 
     #fig.suptitle(r'$K_{\mathrm{i}} = %.1f$ eV, $\alpha_{\mathrm{i}} = %.1f$ deg, $\lambda_{\mathrm{i}} = %.1f$ deg, $\psi_{\mathrm{i}} = %.1f \pi$ rad' % (Ktotal_energy_array[0] / elementary_charge, alpha_array[0] * 180E0 / np.pi, mlat_rad_array[0] * 180E0 / np.pi, psi_array[0] / np.pi), fontsize=font_size*0.9)
 

@@ -38,13 +38,14 @@ electron_number_density_eq = 158E6   # [m-3] (Bagenal et al., 2015)
 ion_number_density_eq = electron_number_density_eq / ion_charge_number   # [m-3]
 
 def centrifugal_scale_height():
-    return np.sqrt(2E0 * (ion_temperature + ion_charge_number * electron_temperature) * elementary_charge / 3E0 / ion_mass_number / proton_mass / Omega_Jupiter**2E0)   # [m]
+    #return np.sqrt(2E0 * (ion_temperature + ion_charge_number * electron_temperature) * elementary_charge / 3E0 / ion_mass_number / proton_mass / Omega_Jupiter**2E0)   # [m]
+    return np.sqrt(2E0 * (ion_temperature) * elementary_charge / 3E0 / ion_mass_number / proton_mass / Omega_Jupiter**2E0)   # [m]
 
 H_centrifugal = centrifugal_scale_height()  # [m]
 print(f'centrifugal scale height: {H_centrifugal / Radius_Jupiter} R_J')
 
 # 自転軸の角度
-alpha_rot_deg_list = [-9.6, 0.0, 9.6]   # [deg] (Thomas et al., 2004)
+alpha_rot_deg_list = [-9.3, 0.0, 9.3]   # [deg] (Connerney et al., 2020)
 alpha_rot_rad_list = [np.deg2rad(alpha_rot_deg) for alpha_rot_deg in alpha_rot_deg_list]
 
 def centrifugal_equator_mlat_rad(alpha_rot_rad):
@@ -55,6 +56,9 @@ def centrifugal_equator_mlat_rad(alpha_rot_rad):
 centrifugal_equator_mlat_rad_list = [centrifugal_equator_mlat_rad(alpha_rot_rad) for alpha_rot_rad in alpha_rot_rad_list]
 
 centrifugal_equator_mlat_deg_list = [np.rad2deg(centrifugal_equator_mlat_rad) for centrifugal_equator_mlat_rad in centrifugal_equator_mlat_rad_list]
+
+print(f'centrifugal equator mlat: {centrifugal_equator_mlat_deg_list} [deg]')
+#quit()
 
 
 # 磁気緯度
@@ -157,8 +161,11 @@ def plot_each_alpha_rot(fig, axes, alpha_rot_index):
     ax1 = fig.add_subplot(axes[1], xlabel=r'MLAT $\lambda$ [deg]', ylabel=r'Length [m]', yscale='log')
     ax2 = fig.add_subplot(axes[2], xlabel=r'MLAT $\lambda$ [deg]', ylabel=r'$\Lambda$')
 
-    ax0.plot(mlat_deg_array, electron_number_density_array[:, alpha_rot_index] / electron_number_density_eq, label=r'$n_{\mathrm{e}} / n_{\mathrm{e, ceq}}$', color=r'orange', linewidth=4, alpha=0.6)
-    ax0.plot(mlat_deg_array, magnetic_flux_density_array / magnetic_flux_density(0E0), label=r'$B / B_{\mathrm{eq}}$', color=r'purple', linewidth=4, alpha=0.6)
+    alpha_rot_rad = alpha_rot_rad_list[alpha_rot_index]
+    lambda_0 = centrifugal_equator_mlat_rad(alpha_rot_rad)
+
+    ax0.plot(mlat_deg_array, electron_number_density_array[:, alpha_rot_index] / electron_number_density_function(lambda_0, alpha_rot_rad), label=r'$n_{0} / n_{0} (\lambda_{\mathrm{ceq}})$', color=r'orange', linewidth=4, alpha=0.6)
+    ax0.plot(mlat_deg_array, magnetic_flux_density_array / magnetic_flux_density(0E0), label=r'$B_{0} / B_{0} (0)$', color=r'purple', linewidth=4, alpha=0.6)
     ax0.axvline(centrifugal_equator_mlat_deg_list[alpha_rot_index], color='red', linestyle='--', linewidth=4, alpha=0.3)
     ax0.legend()
     ax0_ylim = ax0.get_ylim()
@@ -167,13 +174,14 @@ def plot_each_alpha_rot(fig, axes, alpha_rot_index):
 
     ax1.plot(mlat_deg_array, np.abs(number_density_gradient_scale_length_array[:, alpha_rot_index]), label=r'$| L_{\mathrm{n}} |$', color=r'orange', linewidth=4, alpha=0.6)
     ax1.plot(mlat_deg_array, magnetic_field_gradient_scale_length_array, label=r'$L_{\mathrm{B}}$', color=r'purple', linewidth=4, alpha=0.6)
-    ax1.plot(mlat_deg_array, whistler_mode_chorus_wave_length_array[:, alpha_rot_index, 0], label=r'$\Lambda_{%.2f}$' % (frequency_at_equator_list[0] / electron_cyclotron_frequency(0E0)), color=r'blue', linewidth=4, alpha=0.6)
-    ax1.plot(mlat_deg_array, whistler_mode_chorus_wave_length_array[:, alpha_rot_index, 1], label=r'$\Lambda_{%.2f}$' % (frequency_at_equator_list[1] / electron_cyclotron_frequency(0E0)), color=r'green', linewidth=4, alpha=0.6)
+    #ax1.plot(mlat_deg_array, whistler_mode_chorus_wave_length_array[:, alpha_rot_index, 0], label=r'$L_{\mathrm{w} %.2f}$' % (frequency_at_equator_list[0] / electron_cyclotron_frequency(0E0)), color=r'blue', linewidth=4, alpha=0.6)
+    #ax1.plot(mlat_deg_array, whistler_mode_chorus_wave_length_array[:, alpha_rot_index, 1], label=r'$L_{\mathrm{w} %.2f}$' % (frequency_at_equator_list[1] / electron_cyclotron_frequency(0E0)), color=r'green', linewidth=4, alpha=0.6)
     ax1.axvline(centrifugal_equator_mlat_deg_list[alpha_rot_index], color='red', linestyle='--', linewidth=4, alpha=0.3)
-    ax1.legend(loc='lower right')
+    #ax1.legend(loc='lower right')
+    ax1.legend()
 
-    ax2.plot(mlat_deg_array, Lambda_value_array[:, alpha_rot_index, 0], label=r'$\Lambda_{%.2f}$' % (frequency_at_equator_list[0] / electron_cyclotron_frequency(0E0)), color=r'blue', linewidth=4, alpha=0.6)
-    ax2.plot(mlat_deg_array, Lambda_value_array[:, alpha_rot_index, 1], label=r'$\Lambda_{%.2f}$' % (frequency_at_equator_list[1] / electron_cyclotron_frequency(0E0)), color=r'green', linewidth=4, alpha=0.6)
+    ax2.plot(mlat_deg_array, Lambda_value_array[:, alpha_rot_index, 0], label=r'$L_{\mathrm{w} %.2f}$' % (frequency_at_equator_list[0] / electron_cyclotron_frequency(0E0)), color=r'blue', linewidth=4, alpha=0.6)
+    ax2.plot(mlat_deg_array, Lambda_value_array[:, alpha_rot_index, 1], label=r'$L_{\mathrm{w} %.2f}$' % (frequency_at_equator_list[1] / electron_cyclotron_frequency(0E0)), color=r'green', linewidth=4, alpha=0.6)
     ax2.axvline(centrifugal_equator_mlat_deg_list[alpha_rot_index], color='red', linestyle='--', linewidth=4, alpha=0.3)
     ax2.legend()
 
@@ -204,7 +212,10 @@ fig = main_plot()
 if not os.path.exists(dir_name):
     os.makedirs(dir_name)
 
-fig.savefig(f'{dir_name}/scale_length_plot_Europa.png')
-fig.savefig(f'{dir_name}/scale_length_plot_Europa.pdf')
+fig.savefig(f'{dir_name}/scale_length_plot_Europa_except_wavelength.png') #.png')
+fig.savefig(f'{dir_name}/scale_length_plot_Europa_except_wavelength.pdf')  #.pdf')
+#fig.savefig(f'{dir_name}/scale_length_plot_Europa.png') #.png')
+#fig.savefig(f'{dir_name}/scale_length_plot_Europa.pdf')  #.pdf')
+
 plt.close(fig)
     

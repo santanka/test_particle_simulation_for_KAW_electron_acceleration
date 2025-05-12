@@ -30,7 +30,7 @@ Time_rotation_Jupiter = 9.9258E0 * 3600E0   # [s]
 Omega_Jupiter = 2E0 * np.pi / Time_rotation_Jupiter   # [rad/s]
 
 # 自転軸の角度
-alpha_rot_deg_list = [-9.6, 0.0, 9.6]   # [deg] (Thomas et al., 2004)
+alpha_rot_deg_list = [-9.3, 0.0, 9.3]   # [deg] (Connerney et al., 2020)
 alpha_rot_rad_list = [np.deg2rad(alpha_rot_deg) for alpha_rot_deg in alpha_rot_deg_list]
 
 def centrifugal_equator_mlat_rad(alpha_rot_rad):
@@ -67,7 +67,8 @@ ion_mass_number = 24.4E0   # (Phipps et al., 2018)
 electron_number_density_eq = 3350E6   # [m-3] (Phipps et al., 2018)
 
 def centrifugal_scale_height():
-    return np.sqrt(2E0 * (ion_temperature + ion_charge_number * electron_temperature) * elementary_charge / 3E0 / ion_mass_number / proton_mass / Omega_Jupiter**2E0)   # [m]
+    #return np.sqrt(2E0 * (ion_temperature + ion_charge_number * electron_temperature) * elementary_charge / 3E0 / ion_mass_number / proton_mass / Omega_Jupiter**2E0)   # [m]
+    return np.sqrt(2E0 * (ion_temperature) * elementary_charge / 3E0 / ion_mass_number / proton_mass / Omega_Jupiter**2E0)   # [m]
 
 H_centrifugal = centrifugal_scale_height()   # [m]
 print(f'centrifugal scale height: {H_centrifugal / Radius_Jupiter} R_J')
@@ -130,7 +131,9 @@ magnetic_field_gradient_scale_length_array = magnetic_field_gradient_scale_lengt
 
 # Alfven speed
 def Alfven_speed_function(mlat_rad, alpha_rot_rad):
-    return magnetic_flux_density(mlat_rad) / np.sqrt(magnetic_constant * electron_number_density_function(mlat_rad, alpha_rot_rad) / ion_charge_number * ion_mass_number * proton_mass)   # [m s-1]
+    #return magnetic_flux_density(mlat_rad) / np.sqrt(magnetic_constant * electron_number_density_function(mlat_rad, alpha_rot_rad) / ion_charge_number * ion_mass_number * proton_mass)   # [m s-1]
+    v_A_base = magnetic_flux_density(mlat_rad) / np.sqrt(magnetic_constant * electron_number_density_function(mlat_rad, alpha_rot_rad) / ion_charge_number * ion_mass_number * proton_mass)   # [m s-1]
+    return v_A_base / np.sqrt(1 + v_A_base**2E0 / speed_of_light**2E0)
 
 # ion Larmor radius
 def ion_Larmor_radius_function(mlat_rad):
@@ -179,21 +182,21 @@ def plot_each_alpha_rot(fig, axes, alpha_rot_index):
     alpha_rot_rad = alpha_rot_rad_list[alpha_rot_index]
     lambda_0 = centrifugal_equator_mlat_rad(alpha_rot_rad)
 
-    ax0.plot(mlat_deg_array, electron_number_density_array[:, alpha_rot_index] / electron_number_density_function(lambda_0, alpha_rot_rad), label=r'$n_{\mathrm{e}} / n_{\mathrm{e, ceq}}$', color=r'orange', linewidth=4, alpha=0.6)
-    ax0.plot(mlat_deg_array, magnetic_flux_density_array / magnetic_flux_density(0E0), label=r'$B / B_{\mathrm{eq}}$', color=r'purple', linewidth=4, alpha=0.6)
-    ax0.plot(mlat_deg_array, Alfven_speed_array[:, alpha_rot_index] / Alfven_speed_function(0E0, alpha_rot_rad), label=r'$v_{\mathrm{A}} / v_{\mathrm{A, eq}}$', color=r'blue', linewidth=4, alpha=0.6)
-    ax0.plot(mlat_deg_array, ion_plasma_beta_array[:, alpha_rot_index] / ion_plasma_beta_function(0E0, alpha_rot_rad), label=r'$\beta_{\mathrm{i}} / \beta_{\mathrm{i, eq}}$', color=r'green', linewidth=4, alpha=0.6)
+    ax0.plot(mlat_deg_array, electron_number_density_array[:, alpha_rot_index] / electron_number_density_function(lambda_0, alpha_rot_rad), label=r'$n_{0} / n_{0} (\lambda_{\mathrm{ceq}})$', color=r'orange', linewidth=4, alpha=0.6)
+    ax0.plot(mlat_deg_array, magnetic_flux_density_array / magnetic_flux_density(0E0), label=r'$B_{0} / B_{0} (0)$', color=r'purple', linewidth=4, alpha=0.6)
+    ax0.plot(mlat_deg_array, Alfven_speed_array[:, alpha_rot_index] / Alfven_speed_function(lambda_0, alpha_rot_rad), label=r'$v_{\mathrm{A}} / v_{\mathrm{A}} (\lambda_{\mathrm{ceq}})$', color=r'blue', linewidth=4, alpha=0.6)
+    ax0.plot(mlat_deg_array, ion_plasma_beta_array[:, alpha_rot_index] / ion_plasma_beta_function(lambda_0, alpha_rot_rad), label=r'$\beta_{\mathrm{i}} / \beta_{\mathrm{i}} (\lambda_{\mathrm{ceq}})$', color=r'green', linewidth=4, alpha=0.6)
     ax0.axvline(centrifugal_equator_mlat_deg_list[alpha_rot_index], color='red', linestyle='--', linewidth=4, alpha=0.3)
     ax0.legend()
     ax0_ylim = ax0.get_ylim()
     if ax0_ylim[0] < 0E0:
         ax0.set_ylim([0E0, ax0_ylim[1]])
-    ax0.set_title(r'$v_{\mathrm{A, eq}} = %.2g$ c, $\beta_{\mathrm{i, eq}} = %.2g$' % (Alfven_speed_function(0E0, alpha_rot_rad) / speed_of_light, ion_plasma_beta_function(0E0, alpha_rot_rad)))
+    ax0.set_title(r'$v_{\mathrm{A, ceq}} = %.2g$ c, $\beta_{\mathrm{i, ceq}} = %.2g$' % (Alfven_speed_function(lambda_0, alpha_rot_rad) / speed_of_light, ion_plasma_beta_function(lambda_0, alpha_rot_rad)))
 
     ax1.plot(mlat_deg_array, np.abs(number_density_gradient_scale_length_array[:, alpha_rot_index]), label=r'$| L_{\mathrm{n}} |$', color=r'orange', linewidth=4, alpha=0.6)
     ax1.plot(mlat_deg_array, magnetic_field_gradient_scale_length_array, label=r'$L_{\mathrm{B}}$', color=r'purple', linewidth=4, alpha=0.6)
-    ax1.plot(mlat_deg_array, perpendicular_KAW_wavelength_array, label=r'$\Lambda_{\perp}$', color=r'blue', linewidth=4, alpha=0.6)
-    ax1.plot(mlat_deg_array, parallel_KAW_wavelength_array[:, alpha_rot_index], label=r'$\Lambda_{\parallel}$', color=r'green', linewidth=4, alpha=0.6)
+    #ax1.plot(mlat_deg_array, perpendicular_KAW_wavelength_array, label=r'$L_{\mathrm{w} \perp}$', color=r'blue', linewidth=4, alpha=0.6)
+    #ax1.plot(mlat_deg_array, parallel_KAW_wavelength_array[:, alpha_rot_index], label=r'$L_{\mathrm{w} \parallel}$', color=r'green', linewidth=4, alpha=0.6)
     ax1.axvline(centrifugal_equator_mlat_deg_list[alpha_rot_index], color='red', linestyle='--', linewidth=4, alpha=0.3)
     ax1.legend()
 
@@ -227,6 +230,9 @@ fig = main_plot()
 if not os.path.exists(dir_name):
     os.makedirs(dir_name)
 
-fig.savefig(f'{dir_name}/scale_length_plot_Io.png')
-fig.savefig(f'{dir_name}/scale_length_plot_Io.pdf')
+#fig.savefig(f'{dir_name}/scale_length_plot_Io.png') #_except_wavelength.png')
+#fig.savefig(f'{dir_name}/scale_length_plot_Io.pdf') #_except_wavelength.pdf')
+fig.savefig(f'{dir_name}/scale_length_plot_Io_except_wavelength.png')
+fig.savefig(f'{dir_name}/scale_length_plot_Io_except_wavelength.pdf')
+
 plt.close(fig)
