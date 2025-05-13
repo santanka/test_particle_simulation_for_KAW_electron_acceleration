@@ -218,13 +218,13 @@ for count_mlat, count_alpha, count_wave in np.ndindex(wave_sweep_rate_array.shap
 
 # plot
 def plot_each_alpha_rot(fig, axes, alpha_rot_index):
-    ax0 = fig.add_subplot(axes[0], xlabel=r'MLAT $\lambda$ [deg]', ylabel=r'$\alpha_{\mathrm{rot}} = %.1f$ [deg]' % alpha_rot_deg_list[alpha_rot_index] + '\n' + r'Sweep Ratio [$\mathrm{rad} / \mathrm{s}^{2}$]')
+    ax0 = fig.add_subplot(axes[0], xlabel=r'MLAT $\lambda$ [deg]', ylabel=r'$\alpha_{\mathrm{rot}} = %.1f$ [deg]' % alpha_rot_deg_list[alpha_rot_index] + '\n' + r'$1 / \Omega_{\mathrm{e}} \, \partial \omega / \partial t$ [$1 / \mathrm{s}$]')
     
     alpha_rot_rad = alpha_rot_rad_list[alpha_rot_index]
     lambda_0 = centrifugal_equator_mlat_rad(alpha_rot_rad)
 
-    ax0.plot(mlat_deg_array, wave_sweep_rate_array[:, alpha_rot_index, 0], label=r'$\omega_{%.2f}$' % (wave_frequency_array[0] / electron_cyclotron_frequency(0E0)), color=r'blue', linewidth=4, alpha=0.6)
-    ax0.plot(mlat_deg_array, wave_sweep_rate_array[:, alpha_rot_index, 1], label=r'$\omega_{%.2f}$' % (wave_frequency_array[1] / electron_cyclotron_frequency(0E0)), color=r'green', linewidth=4, alpha=0.6)
+    ax0.plot(mlat_deg_array, wave_sweep_rate_array[:, alpha_rot_index, 0] / electron_cyclotron_frequency(mlat_rad_array), label=r'$\omega_{%.2f}$' % (wave_frequency_array[0] / electron_cyclotron_frequency(0E0)), color=r'blue', linewidth=4, alpha=0.6)
+    ax0.plot(mlat_deg_array, wave_sweep_rate_array[:, alpha_rot_index, 1] / electron_cyclotron_frequency(mlat_rad_array), label=r'$\omega_{%.2f}$' % (wave_frequency_array[1] / electron_cyclotron_frequency(0E0)), color=r'green', linewidth=4, alpha=0.6)
     ax0.legend()
 
     ax0.minorticks_on()
