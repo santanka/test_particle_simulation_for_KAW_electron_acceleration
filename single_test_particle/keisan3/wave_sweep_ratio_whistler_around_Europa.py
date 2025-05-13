@@ -237,8 +237,8 @@ def plot_each_alpha_rot(fig, axes, alpha_rot_index):
     return fig, axes
 
 def main_plot():
-    fig = plt.figure(figsize=(30, 10), dpi=100)
-    gs = fig.add_gridspec(1, 3, width_ratios=[1, 1, 1])
+    fig = plt.figure(figsize=(10, 30), dpi=100)
+    gs = fig.add_gridspec(3, 1, height_ratios=[1, 1, 1])
     
     for alpha_rot_index in range(len(alpha_rot_deg_list)):
         fig, axes = plot_each_alpha_rot(fig, [gs[alpha_rot_index]], alpha_rot_index)
