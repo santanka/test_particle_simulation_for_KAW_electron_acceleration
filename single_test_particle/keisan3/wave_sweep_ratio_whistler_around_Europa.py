@@ -171,7 +171,8 @@ def resonance_velocity_function(mlat_rad, alpha_rot_rad, wave_frequency, vperp):
     cyclotron_wave_ratio = electron_cyclotron_frequency(mlat_rad) / wave_frequency
     phase_speed_ratio = wave_phase_speed(mlat_rad, alpha_rot_rad, wave_frequency) / speed_of_light
     vperp_ratio = vperp / speed_of_light
-    return wave_phase_speed(mlat_rad, alpha_rot_rad, wave_frequency) / (1E0 + cyclotron_wave_ratio**2E0 * phase_speed_ratio**2E0) * (-1E0 + np.sqrt(1E0 - (1E0 + cyclotron_wave_ratio**2E0 * phase_speed_ratio**2E0) * (1E0 - cyclotron_wave_ratio**2E0 * (1E0 - vperp_ratio**2E0))))
+    V_res = wave_phase_speed(mlat_rad, alpha_rot_rad, wave_frequency) / (1E0 + cyclotron_wave_ratio**2E0 * phase_speed_ratio**2E0) * (1E0 - np.sqrt(1E0 - (1E0 + cyclotron_wave_ratio**2E0 * phase_speed_ratio**2E0) * (1E0 - cyclotron_wave_ratio**2E0 * (1E0 - vperp_ratio**2E0))))
+    return V_res
 
 def gamma(vpara, vperp):
     return (1E0 - (vpara**2E0 + vperp**2E0) / speed_of_light**2E0)**(-5E-1)
