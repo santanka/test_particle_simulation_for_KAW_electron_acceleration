@@ -80,7 +80,7 @@ class ConstNe(DensityModel):
     def ne(self,mlat,alpha):
         return self.n_eq
     def L_ne(self,mlat,alpha):
-        return np.inf
+        return np.inf * np.ones_like(mlat)
 
 class BProportionalNe(DensityModel):
     """Density proportional to |B|."""
@@ -152,17 +152,19 @@ def s1(model,mlat,alpha,omega,v_perp):
     g   = gamma_lor(v_r,v_perp)
     return g*(1 - v_r/v_group(model,mlat,alpha,omega))**2
 
-def s2_mod(model,mlat,alpha,omega,v_perp):
-    v_r = v_res(model,mlat,alpha,omega,v_perp)
-    g   = gamma_lor(v_r,v_perp)
-    ch  = chi(model,mlat,alpha,omega)
-    xi_ = xi(model,mlat,alpha,omega)
-    Lb  = L_B(mlat)
-    Ln  = model.L_ne(mlat,alpha)
-    grad_term = 1/Lb
-    if np.isfinite(Ln):
-        grad_term += 1/Ln
-    return g*omega/(2*xi_*ch)*grad_term
+def s2_mod(model, mlat, alpha, omega, v_perp):
+    v_r = v_res(model, mlat, alpha, omega, v_perp)
+    g   = gamma_lor(v_r, v_perp)
+    ch  = chi(model, mlat, alpha, omega)
+    xi_ = xi(model, mlat, alpha, omega)
+
+    inv_Lb = 1.0 / L_B(mlat)                 # 配列
+    Ln     = model.L_ne(mlat, alpha)         # 配列 or スカラー
+    inv_Ln = np.where(np.isfinite(Ln), 1.0 / Ln, 0.0)
+
+    grad_term = inv_Lb + inv_Ln
+    return g * omega / (2 * xi_ * ch) * grad_term
+
 
 def wave_sweep_rate(model,inhomog,alpha,mlat,omega,Bwave,v_perp):
     """Time rate of change of wave frequency (sweep rate)."""
