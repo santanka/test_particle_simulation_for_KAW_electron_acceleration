@@ -73,7 +73,7 @@ class DensityModel:
         raise NotImplementedError
 
 class ConstNe(DensityModel):
-    """MLAT‑independent electron density."""
+    """MLAT-independent electron density."""
     def __init__(self,n_eq):
         super().__init__('Const')
         self.n_eq = n_eq
@@ -208,7 +208,7 @@ for i,alpha in enumerate(alpha_rot_rad_list):
             rate = wave_sweep_rate(model,inhomog_factor,alpha,mlat_rad_array,omega,Bwave_typical,v_perp_typical)
             ax.plot(mlat_deg_array,rate/omega_ce_eq,label=fr'$\omega/\Omega_e={omega/omega_ce_eq:.2f}$',linewidth=2,alpha=0.7)
         if j==0:
-            ax.set_ylabel(fr'$\alpha_{{rot}}={np.rad2deg(alpha):.1f}^\circ$\n$1/\Omega_e\,\partial\omega/\partial t$')
+            ax.set_ylabel(fr'$\alpha_{{rot}}={np.rad2deg(alpha):.1f}^\circ$' + '\n' + fr'$1/\Omega_e\,\partial\omega/\partial t$')
         if i==n_rows-1:
             ax.set_xlabel('MLAT [deg]')
         ax.set_xlim(0,15)
