@@ -85,7 +85,7 @@ class ConstNe(DensityModel):
 class BProportionalNe(DensityModel):
     """Density proportional to |B|."""
     def __init__(self,n_eq):
-        super().__init__('∝B')
+        super().__init__('Promotion to B')
         self.n_eq = n_eq
         self.B_eq = B_dipole(0.0)
     def ne(self,mlat,alpha):
@@ -212,7 +212,8 @@ for i,alpha in enumerate(alpha_rot_rad_list):
         if i==n_rows-1:
             ax.set_xlabel('MLAT [deg]')
         ax.set_xlim(0,15)
-        ax.grid(alpha=0.3)
+        ax.minorticks_on()
+        ax.grid(alpha=0.3, which='both')
         if i==0 and j==n_cols-1:
             ax.legend(fontsize=12)
 
