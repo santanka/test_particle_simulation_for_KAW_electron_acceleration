@@ -152,18 +152,21 @@ def s1(model,mlat,alpha,omega,v_perp):
     g   = gamma_lor(v_r,v_perp)
     return g*(1 - v_r/v_group(model,mlat,alpha,omega))**2
 
+#s2を要調整、変な式になっている。
+
 def s2_mod(model, mlat, alpha, omega, v_perp):
     v_r = v_res(model, mlat, alpha, omega, v_perp)
-    g   = gamma_lor(v_r, v_perp)
+    v_p = v_phase(model, mlat, alpha, omega)
+    gamma   = gamma_lor(v_r, v_perp)
     ch  = chi(model, mlat, alpha, omega)
     xi_ = xi(model, mlat, alpha, omega)
 
     inv_Lb = 1.0 / L_B(mlat)                 # 配列
     Ln     = model.L_ne(mlat, alpha)         # 配列 or スカラー
     inv_Ln = np.where(np.isfinite(Ln), 1.0 / Ln, 0.0)
+    cycl_freq = omega_ce(mlat)
 
-    grad_term = inv_Lb + inv_Ln
-    return g * omega / (2 * xi_ * ch) * grad_term
+    return 1E0 / 2E0 / xi_ / ch * (gamma * omega * speed_of_light * inv_Lb * (v_perp/speed_of_light)**2E0 - (2E0 + ch**2E0 * (cycl_freq - gamma * omega) / (cycl_freq - omega)) * cycl_freq * v_r * v_p / speed_of_light * inv_Lb + ch**2E0 * (cycl_freq - gamma * omega) * inv_Ln * v_r * v_p / speed_of_light)
 
 
 def wave_sweep_rate(model,inhomog,alpha,mlat,omega,Bwave,v_perp):
@@ -174,7 +177,7 @@ def wave_sweep_rate(model,inhomog,alpha,mlat,omega,Bwave,v_perp):
     return -s_0/s_1 * inhomog * omega * elementary_charge * Bwave / electron_mass - s_2/s_1
 
 # ===== Main arrays & parameters =====
-mlat_deg_array       = np.linspace(0.2,15.0,10000)
+mlat_deg_array       = np.linspace(0,15.0,10000)
 mlat_rad_array       = np.deg2rad(mlat_deg_array)
 alpha_rot_deg_list   = [-9.3,0.0,9.3]
 alpha_rot_rad_list   = np.deg2rad(alpha_rot_deg_list)
@@ -183,8 +186,12 @@ omega_ce_eq          = omega_ce(0.0)
 wave_frequency_array = np.array([0.25,0.75])*omega_ce_eq
 
 v_perp_typical       = 0.706*speed_of_light
-Bwave_typical        = 4.7e-4 * B_dipole(0.0)
-inhomog_factor       = -0.4
+Bwave_typical        = 4.7e-4 * B_dipole(0.0) #3.2E-12
+inhomog_factor       = -0.9
+
+print(Bwave_typical, B_dipole(0))
+
+quit()
 
 # Density models in order: Const, B‑prop, Centrifugal
 density_models = [
@@ -205,17 +212,23 @@ for i,alpha in enumerate(alpha_rot_rad_list):
     for j,model in enumerate(density_models):
         ax = axes[i,j]
         for omega in wave_frequency_array:
-            rate = wave_sweep_rate(model,inhomog_factor,alpha,mlat_rad_array,omega,Bwave_typical,v_perp_typical)
-            ax.plot(mlat_deg_array,rate/omega_ce_eq,label=fr'$\omega/\Omega_e={omega/omega_ce_eq:.2f}$',linewidth=2,alpha=0.7)
+            rate = wave_sweep_rate(model,inhomog_factor,alpha,mlat_rad_array,omega,Bwave_typical,v_perp_typical) / 2 / np.pi / 1E3
+            #s_0 = s0(model, mlat_rad_array, alpha, omega, v_perp_typical)
+            #s_1 = s1(model, mlat_rad_array, alpha, omega, v_perp_typical)
+            #s_2_mod = s2_mod(model, mlat_rad_array, alpha, omega, v_perp_typical)
+            ax.plot(mlat_deg_array, rate, label=r'$f_{w%.2f}$'%(omega/omega_ce_eq) + r' $=$ ' + r'%.2f kHz' % (omega/2/np.pi/1E3), linewidth=4, alpha=0.6)
+            #ax.set_yscale('log')
         if j==0:
-            ax.set_ylabel(fr'$\alpha_{{rot}}={np.rad2deg(alpha):.1f}^\circ$' + '\n' + fr'$1/\Omega_e\,\partial\omega/\partial t$')
+            ax.set_ylabel(r'$\alpha_{\mathrm{rot}}=$'+fr'${np.rad2deg(alpha):.1f}^\circ$' + '\n' + r'$\partial f_{\mathrm{w}}/\partial t$ [kHz/s]')
+            #ax.set_ylabel(r'$\alpha_{\mathrm{rot}}=$'+fr'${np.rad2deg(alpha):.1f}^\circ$' + '\n' + r'modified $s_{2}$')
         if i==n_rows-1:
             ax.set_xlabel('MLAT [deg]')
+        ax.axvline(np.rad2deg(mlat_centrifugal_equator(alpha)), color='red', linestyle='--', linewidth=4, alpha=0.3)
         ax.set_xlim(0,15)
         ax.minorticks_on()
         ax.grid(alpha=0.3, which='both')
-        if i==0 and j==n_cols-1:
-            ax.legend(fontsize=12)
+        if i==0 and j==0:
+            ax.legend()
 
 fig.tight_layout()
 fig.savefig('wave_sweep_ratio_comparison.png')
